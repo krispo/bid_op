@@ -1,17 +1,13 @@
 package serializers
 
 import org.joda.time.DateTime
-import com.codahale.jerkson.Json
 
 import domain._
 
 case class BannerPhrase(
   val banner: Option[domain.Banner],
   val phrase: Option[domain.Phrase],
-  val region: Option[domain.Region]
-
-) extends domain.BannerPhrase
-{
+  val region: Option[domain.Region]) extends domain.BannerPhrase {
   @transient
   val id: Long = 0
   @transient
@@ -26,4 +22,3 @@ case class BannerPhrase(
   @transient
   val performanceHistory: List[Performance] = Nil
 }
-

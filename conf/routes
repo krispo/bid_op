@@ -4,11 +4,16 @@
 
 # Home page
 GET     /                           controllers.Application.index
+GET     /clearDB/:user              controllers.Application.clearDB(user:String)
+
+# The clock Comet stream
+GET     /clock                      controllers.Application.liveClock
 
 # UserController
 #
-GET   /user/:name               controllers.UserController.user(name: String)
-
+#GET   /user/:name               	controllers.UserController.user_old(name: String)
+GET    /user/:name                  controllers.UserController.user(name: String)
+POST   /user                		controllers.UserController.createUser
 
 # CampaignController
 #
