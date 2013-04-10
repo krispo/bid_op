@@ -3,13 +3,12 @@ package controllers
 import play.api._
 import play.api.mvc._
 import org.joda.time._
-
 import json_api.Convert._
 import play.api.libs.json._
-
 import domain.{ User, Campaign, Network }
-import dao.squerylorm.SquerylDao
+import dao.squerylorm.{ SquerylDao, Charts }
 import serializers.yandex.XmlReport
+import org.jboss.netty.handler.timeout.IdleStateHandler
 
 object CampaignController extends Controller with Secured {
 
@@ -24,7 +23,10 @@ object CampaignController extends Controller with Secured {
       dao.getCampaigns(user_name, net_name) match {
         case Nil => NotFound("CAMPAIGNS are NOT FOUND...")
         case campaigns =>
-          val sCampaigns = campaigns map (serializers.Campaign._apply(_))
+          val sCampaigns = campaigns map { c =>
+            c.historyStartDate = c.startDate
+            serializers.Campaign._apply(c)
+          }
           Ok(toJson[List[serializers.Campaign]](sCampaigns)) as (JSON)
       }
     })
@@ -39,6 +41,7 @@ object CampaignController extends Controller with Secured {
       dao.getCampaign(user_name, net_name, network_campaign_id) match {
         case None => NotFound("CAMPAIGN is NOT FOUND...")
         case Some(c) =>
+          c.historyStartDate = c.startDate
           val sCampaign = serializers.Campaign._apply(c)
           Ok(toJson[List[serializers.Campaign]](List(sCampaign))) as (JSON)
       }
@@ -358,5 +361,52 @@ object CampaignController extends Controller with Secured {
       }
     })
 
+  /**
+   * generate CHARTS in view for User, Network and network_campaign_id
+   * GET /user/:user/net/:net/camp/:id/charts
+   */
+  def charts(user_name: String, net_name: String, network_campaign_id: String, password: String) =
+    Action { implicit request => //TODO - need to add Authentication!!!
+      import scala.concurrent.Future
+      import scala.concurrent.ExecutionContext.Implicits.global
+      import java.util.concurrent.TimeUnit
+
+      val futureResult = Future[Result] {
+
+        val dao = new SquerylDao()
+
+        dao.getUser(user_name, password) match {
+          case None => NotFound("User NOT FOUND... Invalid name or password...")
+          case Some(user) => {
+            dao.getCampaign(user_name, net_name, network_campaign_id) match {
+              case None => NotFound("CAMPAIGN is NOT FOUND...")
+              case Some(c) =>
+                val iso_fmt = format.ISODateTimeFormat.dateTime()
+                val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
+                val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
+                //we will retrieve all data from db 
+                c.historyStartDate = sdate
+                c.historyEndDate = edate
+
+                //generate charts in browser
+                Ok(views.html.charts(user.name, net_name, Some(c)))
+            }
+          }
+        }
+      }
+
+      // if service handles request too slow => return Timeout response
+      val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
+        message = "Oops, TIMEOUT while calling BID server...",
+        duration = 3,
+        unit = TimeUnit.MINUTES)
+
+      Async {
+        Future.firstCompletedOf(Seq(futureResult, timeoutFuture)).map {
+          case f: Result => f
+          case t: String => InternalServerError(t)
+        }
+      }
+    }
 }
 

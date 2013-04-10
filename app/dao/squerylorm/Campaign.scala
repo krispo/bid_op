@@ -63,7 +63,7 @@ case class Campaign(
   def endDate: Option[DateTime] = endDateHistory.lastOption map ((x: EndDateHistory) => x.endDate)
 
   lazy val budgetHistory = getHistory[BudgetHistory](budgetHistoryRel)
-  def budget = budgetHistory.lastOption map (_.budget)
+  def budget = budgetHistory.headOption map (_.budget) //current balance
 
   def user = None
   def network = None
@@ -345,6 +345,7 @@ object Campaign {
       endDate = cc.endDate.get).put
 
     // return DB Campaign
+    c.historyStartDate = cc.startDate
     c
   }
 
