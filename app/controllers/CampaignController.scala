@@ -200,17 +200,6 @@ object CampaignController extends Controller with Secured {
                   val domPerf = dao.createCampaignPerformanceReport(c, performance)
                   println("CREATED PERFORMANCE!!!!!!!!!!!!!!")
 
-                  /** Create Permutation-Recommendation **/
-                  /*c.historyStartDate = c.startDate
-                  c.historyEndDate = c.endDate.getOrElse(new DateTime())
-
-                  println("<<<<< " + c.permutationHistory.toString + " >>>>>")
-                  println("<<<<< " + c.curves.toString + " >>>>>")
-                  if (runOptimizerAlgorithm(c, performance, dao))
-                    println("CREATED PERMUTATION-RECOMMENDATION!!!!!!!!!!!!!!")
-                  else
-                    println("Algorithm is FAILED!!!!!!!!!!!!")*/
-
                   // respond with CREATED header and Performance body
                   Created(toJson[serializers.Performance](serializers.Performance._apply(domPerf))) as (JSON)
                 } getOrElse BadRequest
@@ -224,6 +213,16 @@ object CampaignController extends Controller with Secured {
     })
 
   def runOptimizerAlgorithm(c: Campaign, performance: serializers.Performance, dao: SquerylDao): Boolean = {
+    /** Create Permutation-Recommendation **/
+    /*c.historyStartDate = c.startDate
+      c.historyEndDate = c.endDate.getOrElse(new DateTime())
+
+      println("<<<<< " + c.permutationHistory.toString + " >>>>>")
+      println("<<<<< " + c.curves.toString + " >>>>>")
+      if (runOptimizerAlgorithm(c, performance, dao))
+         println("CREATED PERMUTATION-RECOMMENDATION!!!!!!!!!!!!!!")
+      else
+         println("Algorithm is FAILED!!!!!!!!!!!!")*/
     try {
       val PR = c.permutationHistory match {
         case Nil => {
@@ -245,9 +244,13 @@ object CampaignController extends Controller with Secured {
         }
         case cList => {
           import optimizer._
-          val opt = new Optimizer
-          val loc_permutation = opt.createLocalPermutation(c, performance.dateTime)
-          dao.createPermutaionRecommendation(loc_permutation, c, c.curves.head)
+          val opt = new OptimizerPro
+          val bpBid = c.bannerPhrases.map(bp => bp -> 0.01).toMap
+
+          dao.createPermutaionRecommendation(c, bpBid, performance.dateTime)
+
+          //val loc_permutation = opt.createLocalPermutation(c, performance.dateTime)
+          //dao.createPermutaionRecommendation(loc_permutation, c, c.curves.head)
         }
       }
       true

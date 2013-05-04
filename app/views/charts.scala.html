@@ -253,7 +253,7 @@ function drawVisualization_pp(pp,bpID) {
 	         	// Display a single series that shows the closing value of the stock.
 	         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
 	         	'chartView': {
-	           		'columns': [0, 5]
+	           		'columns': [0, 6]
 	         	},
 	         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
 	         	'minRangeSize': 86400000
@@ -287,11 +287,12 @@ function drawVisualization_pp(pp,bpID) {
     data.addColumn('number', 'Max');
     data.addColumn('number', 'Premium Min');
     data.addColumn('number', 'Premium Max');
+    data.addColumn('number', 'Bid');
     data.addColumn('number', 'Actual Price');
     var ar = [];
     				
 	for(i in pp) {//push data from ajax response to chart
-	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5]]);
+	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5], pp[i][6]]);
 	};		
 
 	data.addRows(ar);			

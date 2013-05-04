@@ -100,7 +100,8 @@ object Application extends Controller with Secured {
                 JsNumber(e._3),
                 JsNumber(e._4),
                 JsNumber(e._5),
-                JsNumber(e._6))
+                JsNumber(e._6),
+                JsNumber(e._7))
             })
 
             Ok(jpp)
