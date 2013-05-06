@@ -1,5 +1,4 @@
-@(	cform: 	Form[(Option[String], Option[String], Option[String])], 
-	oc:		Option[dao.squerylorm.Campaign]=None) 
+@(cform: 	Form[(Option[String], Option[String], Option[String])]) 
 
 @import helper._
 @import org.joda.time.DateTime
@@ -54,11 +53,9 @@
 </div>
 }
 
-@oc.map{c=>
-
 <div id="Charts" align="center"></div>
 
-<style type="text/css">  
+<style type="text/css">   
 	.chartDiv {  
     	width: 80%;  
         height: 300px;  
@@ -97,17 +94,33 @@
         } 
 </script>  
 
+<script type="text/javascript">
+	google.load('visualization', '1', { packages : [ 'controls' ] });
+	google.load('visualization', '1', { packages : [ 'corechart' ] });	
+</script>
+
+<!-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -->
+<!-- Charts for the whole CAMPAIGN ---------------------------------------------------------------------------------------------------------------------------------------------- -->
+@cform.get._2.map{cIDraw=>
+@defining( (cform.get._1.get, "Yandex", cIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID) =>
+
 <!-- CampaignPerformance CTR ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'controls' ] });
-	google.setOnLoadCallback(drawVisualization);
 
-	function drawVisualization() {
+$.ajax({
+	url : '@routes.Application.drawCharts("c_CTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {		
+		google.setOnLoadCallback(drawChart_cCTR(res,'@cID')); //draw chart	
+	}//success
+});	//ajax
 
-		var uid = 'cpCTR_'+@c.id;
+	function drawChart_cCTR(res,cID) {
+
+		var uid = 'cpCTR_'+cID;
 
 		$('#Charts').append(create_dashboardDiv(uid));	
-
+ 	
 		var dashboard = new google.visualization.Dashboard(
 			document.getElementById('dashboard_'+uid));
 
@@ -161,29 +174,32 @@
 	    data.addColumn('number', 'CTR context');
 	    data.addColumn('number', 'CTR SUM');
 	    var ar = [];
-
-	    @for(ctr <- get_c_CTR(Some(c))) {
-		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
-		};
-
-		data.addRows(ar);			
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([new Date(res[i][0]), res[i][1], res[i][2], res[i][3]]);
+		};		
+		
+		data.addRows(ar);	    		
 
 		dashboard.bind(control, chart);
 		dashboard.draw(data);
-
 	} 	
 </script>
 
-<br/>
-
 <!-- Effectiveness, Cost ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'corechart' ] });
- 	google.setOnLoadCallback(drawChart_bpAllEff);
 
-	function drawChart_bpAllEff() {
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bpEffectiveness", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bpAllEff(res,'@cID')); //draw chart	
+	}//success
+});	//ajax	
 
-		var uid = 'bpAllEff_'+@c.id;
+	function drawChart_bpAllEff(res,cID) {
+
+		var uid = 'bpAllEff_'+cID;
 		
 		$('#Charts').append(create_chartDiv(uid));	
 		
@@ -212,9 +228,9 @@
 	    data.addColumn('number', 'Cost');
 	    var ar = [];
 	    
-	    @for(eff <- get_c_bpEffectiveness(Some(c))) {
-		  	ar.push(['@eff._1', @eff._2, @eff._3, @eff._4]);
-		};
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2], res[i][3]]);
+		};			    
 
 		data.addRows(ar);			
 
@@ -224,16 +240,20 @@
 	} 	
 </script>
 
-<br/>
-
 <!-- Effectiveness, CTR - bp ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'corechart' ] });
- 	google.setOnLoadCallback(drawChart_bpAll);
 
-	function drawChart_bpAll() {
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bpEffectivenessCTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bpAll(res,'@cID')); //draw chart	
+	}//success
+});	//ajax	
 
-		var uid = 'bpAll_'+@c.id;
+	function drawChart_bpAll(res,cID) {
+
+		var uid = 'bpAll_'+cID;
 		
 		$('#Charts').append(create_chartDiv(uid));	
 		
@@ -259,9 +279,9 @@
 	    data.addColumn('number', 'CTR');
 	    var ar = [];
 	    
-	    @for(ctr <- get_c_bpEffectivenessCTR(Some(c))) {
-		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
-		};
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2]]);
+		};	
 
 		data.addRows(ar);			
 
@@ -271,16 +291,20 @@
 	} 	
 </script>
 
-<br/>
-
 <!-- Effectiveness, CTR - b ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'corechart' ] });
- 	google.setOnLoadCallback(drawChart_bAll);
 
-	function drawChart_bAll() {
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bEffectivenessCTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bAll(res,'@cID')); //draw chart	
+	}//success
+});	//ajax	
 
-		var uid = 'bAll_'+@c.id;
+	function drawChart_bAll(res,cID) {
+
+		var uid = 'bAll_'+cID;
 		
 		$('#Charts').append(create_chartDiv(uid));	
 		
@@ -306,9 +330,9 @@
 	    data.addColumn('number', 'CTR');
 	    var ar = [];
 	    
-	    @for(ctr <- get_c_bEffectivenessCTR(Some(c))) {
-		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
-		};
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2]]);
+		};	
 
 		data.addRows(ar);			
 
@@ -317,7 +341,10 @@
         
 	} 	
 </script>
+}
 }.getOrElse{}
+
+
 
 <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------------ -->
 <!-- Charts for a specific BannerPhrase ---------------------------------------------------------------------------------------------------------------------------------->
@@ -333,7 +360,6 @@
 		url : '@routes.Application.drawCharts("bp_PP",user,net,cID,bpID)',
 		type : 'GET',
 		success : function(pp) {
-			google.load('visualization', '1', { packages : [ 'controls' ] });
  			google.setOnLoadCallback(drawChart_PP(pp, '@bpID')); //draw chart	
 		}//success
 	});	//ajax
@@ -419,11 +445,10 @@ function drawChart_PP(pp,bpID) {
 //for all bannerPhrases with region 0
 
 	$.ajax({
-		url : '@routes.Application.bpChart(user,net,cID,bpID)',
+		url : '@routes.Application.drawCharts("bp_CTR",user,net,cID,bpID)',
 		type : 'GET',
 		success : function(bpCTR) {
- 			google.load('visualization', '1', { packages : [ 'controls' ] });
-			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,@bpID));	
+			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,'@bpID'));	
 		} //success
 	});//ajax
 	

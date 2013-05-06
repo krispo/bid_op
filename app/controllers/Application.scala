@@ -82,7 +82,7 @@ object Application extends Controller with Secured {
     common.Helpers.cform.bindFromRequest.fold(
       formWithErrors => BadRequest(views.html.charts(formWithErrors)),
       form => {
-        val oc = if (form._1.isDefined & form._2.isDefined) {
+        /*val oc = if (form._1.isDefined & form._2.isDefined) {
           (new dao.squerylorm.SquerylDao).getCampaign(form._1.get, "Yandex", form._2.get.split("-")(0).filter(_.isDigit)).map { c =>
             val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
             val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
@@ -92,7 +92,7 @@ object Application extends Controller with Secured {
             c.historyEndDate = edate
             c
           }
-        } else None
+        } else None*/
 
         val f =
           if (form._1.map(_ == "--- Choose a User ---").getOrElse(true))
@@ -104,17 +104,20 @@ object Application extends Controller with Secured {
           else
             common.Helpers.cform.fill(form)
 
-        Ok(views.html.charts(f, oc))
+        Ok(views.html.charts(f))
       })
   }
 
   def drawCharts(ctype: String, u: String, n: String, cID: String, bpID: String) = Action {
+    println("!!!!!!!!!!!!! imilive!")
+    println("ctype=" + ctype + "u=" + u + " n=" + n + " c=" + cID)
     Async {
       Future {
         val dao = new SquerylDao()
         dao.getCampaign(u, n, cID) match {
           case None => NotFound("CAMPAIGN is NOT FOUND...")
           case Some(c) => {
+            println("URA!" + ctype)
             val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
             val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
             val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
