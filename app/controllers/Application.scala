@@ -83,7 +83,7 @@ object Application extends Controller with Secured {
       formWithErrors => BadRequest(views.html.charts(formWithErrors)),
       form => {
         val oc = if (form._1.isDefined & form._2.isDefined) {
-          (new dao.squerylorm.SquerylDao).getCampaign(form._1.get, "Yandex", form._2.get.filter(_.isDigit)).map { c =>
+          (new dao.squerylorm.SquerylDao).getCampaign(form._1.get, "Yandex", form._2.get.split("-")(0).filter(_.isDigit)).map { c =>
             val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
             val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
             val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")

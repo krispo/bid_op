@@ -28,7 +28,7 @@ object Helpers {
   val cform = Form(
     tuple(
       "user" -> optional(text),
-      "campaign" -> optional(text) //checked("Create new User")    
-      ))
+      "campaign" -> optional(text),
+      "bpID" -> optional(text)))
 }
 

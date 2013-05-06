@@ -1,4 +1,5 @@
-@(cform: Form[(Option[String], Option[String])], oc:Option[dao.squerylorm.Campaign]=None) 
+@(	cform: 	Form[(Option[String], Option[String], Option[String])], 
+	oc:		Option[dao.squerylorm.Campaign]=None) 
 
 @import helper._
 @import org.joda.time.DateTime
@@ -10,24 +11,44 @@
 @helper.form(action = routes.Application.charts) {
 
 <fieldset>
-	<legend align="top"><h3>Charts</h3></legend>
 	
 	@select( 
 		field = cform("user"),		
 		options = options(User.selectAll.map(_.name)), 
 		'_default -> "--- Choose a User ---", 
-		'_label -> " " 
+		'_label -> "" 
 	)
 		
-	@{if (cform.value.isDefined) {	
-  	select(  
-		field = cform("campaign"),		
-		options = options((new SquerylDao).getCampaigns(cform.get._1.get,"Yandex").map(c=>c.network_campaign_id+" - "+c._login)), 
-		'_default -> "--- Choose a Campaign ---", 
-		'_label -> " "
+	@{if (cform.value.isDefined) {
+	cform.get._1.map {user=>
+		select(  
+			field = cform("campaign"),		
+			options = options((new SquerylDao).getCampaigns(user,"Yandex").map(c=>c.network_campaign_id+" - "+c._login)), 
+			'_default -> "--- Choose a Campaign ---", 
+			'_label -> ""
 		)	
-	}	
-	}		
+	}.getOrElse()  			
+	}
+	}
+			
+	@{if (cform.value.isDefined) {
+	cform.get._2.map {cpID=>	
+  	select(  
+		field = cform("bpID"),		
+		options = options((new SquerylDao).getCampaign(cform.get._1.get,"Yandex",cpID.split("-")(0).filter(_.isDigit)).map{c=>
+			c.bannerPhrases.map{ bp=>
+				bp.id.toString+
+				" - b=" + bp.banner.map(_.network_banner_id).getOrElse("-1")+
+				" - ph=" + bp.phrase.map(_.network_phrase_id).getOrElse("-1")+
+				" - r=" + bp.region.map(_.network_region_id).getOrElse("-1")
+			}
+		}.getOrElse(Nil)), 
+		'_default -> "--- Choose a BannerPhrase ---", 
+		'_label -> ""
+		)	
+	}.getOrElse()	
+	}
+	}
 	
 </fieldset>
 
@@ -37,6 +58,8 @@
 }
 
 @oc.map{c=>
+<legend align="top"><h2>Charts</h2></legend>
+
 <div id="cpCTR" align="center"></div>
 
 <style type="text/css">  
@@ -177,7 +200,8 @@
 			'vAxis': {
 				'title': 'Effectiveness, clicks/costs',
 				'0': {'logScale': false},
-                '1': {'logScale': false}				
+                '1': {'logScale': false},
+                '2': {'logScale': false}
 			},			
         	'series':{
           		'0':{'targetAxisIndex':'0'},
