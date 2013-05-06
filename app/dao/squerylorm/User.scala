@@ -42,6 +42,10 @@ object User {
       a => (a.name === name) and (a.password === password)).headOption
   }
 
+  def selectAll: List[User] = inTransaction {
+    AppSchema.users.toList
+  } //.single }
+
   def create(user: domain.User): User = inTransaction {
     User(user.name, user.password).put
   }

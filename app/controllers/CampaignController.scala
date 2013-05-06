@@ -392,7 +392,7 @@ object CampaignController extends Controller with Secured {
                 c.historyEndDate = edate
 
                 //generate charts in browser
-                Ok(views.html.charts(user.name, net_name, Some(c)))
+                Ok(views.html.charts(common.Helpers.cform)) //(user.name, net_name, common.Helpers.cform))
             }
           }
         }

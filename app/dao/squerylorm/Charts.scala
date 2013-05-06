@@ -85,10 +85,73 @@ object Charts {
     } getOrElse (Nil)
   }
 
+  //Effectiveness of all bp for the campaign 
+  def getAllBannerPhraseEffectiveness(oc: Option[Campaign]): List[(String, Double, Double, Double)] = {
+    oc map { c => //network_region_id="" - only for bp with XMLreport
+      c.bannerPhrases.filter(_.region.map(_.network_region_id == "0").getOrElse(false)) map { bp =>
+        val obp = BannerPhrase.select(c, bp.id)
+        obp map { bp =>
+          (bp.phrase.map(_.phrase).getOrElse("-1"),
+            ctr(
+              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
+              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum),
+              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum.toDouble,
+              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum)
+        } getOrElse ("-1", 0d, 0d, 0d)
+      } sortWith (_._2 > _._2)
+    } getOrElse (Nil)
+  }
+
+  // (Effectiveness,CTR) of all bp for the campaign 
+  def getAllBannerPhrases(oc: Option[Campaign]): List[(String, Double, Double)] = {
+    oc map { c => //network_region_id="" - only for bp with XMLreport
+      c.bannerPhrases.filter(_.region.map(_.network_region_id == "").getOrElse(false)) map { bp =>
+        val obp = BannerPhrase.select(c, bp.id)
+        obp map { bp =>
+          (bp.phrase.map(_.phrase).getOrElse("-1"),
+            ctr(
+              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
+              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum),
+              ctr(
+                bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
+                bp.performanceHistory.map(p => p.impress_search + p.impress_context).sum))
+        } getOrElse ("-1", 0d, 0d)
+      } sortWith (_._3 > _._3)
+    } getOrElse (Nil)
+  }
+
+  //(Effectiveness,CTR) of all b for the campaign 
+  def getAllBanners(oc: Option[Campaign]): List[(String, Double, Double)] = {
+    oc map { c => //network_region_id="" - only for bp with XMLreport
+      val byB = c.bannerPhrases
+        .filter(_.region.map(_.network_region_id == "").getOrElse(false))
+        .map(_.banner.map(_.network_banner_id).getOrElse("-1"))
+        .distinct
+        .map { bID =>
+          val byBP = c.bannerPhrases
+            .filter(_.banner.map(_.network_banner_id == bID).getOrElse(false))
+            .map { bp =>
+              BannerPhrase.select(c, bp.id)
+                .map { bp =>
+                  (bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum.toDouble,
+                    bp.performanceHistory.map(p => p.impress_search + p.impress_context).sum.toDouble,
+                    bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum)
+                }.getOrElse(0d, 0d, 0d)
+            }
+          (bID, byBP.map(_._1).sum, byBP.map(_._2).sum, byBP.map(_._3).sum)
+        }
+      byB.map {
+        case (bID, clicks, shows, cost) =>
+          (bID, ctr(clicks, cost), ctr(clicks, shows))
+      }
+        .sortWith(_._2 > _._2)
+    } getOrElse (Nil)
+  }
+
   //CTR function
-  def ctr(cl: Int, sh: Int): Double = {
+  def ctr(cl: Double, sh: Double): Double = {
     if (sh != 0)
-      cl.toDouble / sh.toDouble
+      cl / sh
     else
       0
   }

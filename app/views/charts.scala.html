@@ -1,11 +1,43 @@
-@(	user: 		String,
-	net: 		String,
-	c: 			Option[dao.squerylorm.Campaign]) 
+@(cform: Form[(Option[String], Option[String])], oc:Option[dao.squerylorm.Campaign]=None) 
 
-@import org.joda.time.DateTime   
+@import helper._
+@import org.joda.time.DateTime
+@import dao.squerylorm.{SquerylDao, User} 
 @import dao.squerylorm.Charts._ 
 
 @main(title = "BOS charts") {
+
+@helper.form(action = routes.Application.charts) {
+
+<fieldset>
+	<legend align="top"><h3>Charts</h3></legend>
+	
+	@select( 
+		field = cform("user"),		
+		options = options(User.selectAll.map(_.name)), 
+		'_default -> "--- Choose a User ---", 
+		'_label -> " " 
+	)
+		
+	@{if (cform.value.isDefined) {	
+  	select(  
+		field = cform("campaign"),		
+		options = options((new SquerylDao).getCampaigns(cform.get._1.get,"Yandex").map(c=>c.network_campaign_id+" - "+c._login)), 
+		'_default -> "--- Choose a Campaign ---", 
+		'_label -> " "
+		)	
+	}	
+	}		
+	
+</fieldset>
+
+<div class="actions">
+	<input type="submit" class="btn primary" value="Choose">
+</div>
+}
+
+@oc.map{c=>
+<div id="cpCTR" align="center"></div>
 
 <style type="text/css">  
 	.chartDiv {  
@@ -33,7 +65,7 @@
         }         
         function create_chartDiv(id) {         
             var div = document.createElement("div");  
-            div.id = "chart_"+id;   
+            div.id = "chart_"+id;  
             div.className = "chartDiv";
             return div
         } 
@@ -41,23 +73,10 @@
             var div = document.createElement("div");  
             div.id = "control_"+id;  
             div.className = "controlDiv";
-            div.hidden = true; //for faster loading the charts we hide controls
+            //div.hidden = true; //for faster loading the charts we hide controls
         	return div
         } 
 </script>  
-
-
-
-<div class="row-fluid sortable">
-			<ul class="nav nav-tabs" id="myTab" >
-				<li class="active"><a href="#cpCTR" data-toggle="tab">Campaign CTR</a></li>
-				<li><a href="#PositionPrices" data-toggle="tab">Prices</a></li>				
-				<li><a href="#bpCTR" data-toggle="tab">BannerPhrase CTR</a></li>
-			</ul>
-
-			<div class="tab-content">
-@** cpCTR + Budget *********************************************************************************************@
-				<div class="tab-pane active" id="cpCTR">					
 
 <!-- CampaignPerformance CTR ------------------------------------------------------>
 <script type="text/javascript">
@@ -66,7 +85,7 @@
 
 	function drawVisualization() {
 
-		var uid = 'cpCTR_'+@c.get.id;
+		var uid = 'cpCTR_'+@c.id;
 
 		$('#cpCTR').append(create_dashboardDiv(uid));	
 
@@ -124,7 +143,7 @@
 	    data.addColumn('number', 'CTR SUM');
 	    var ar = [];
 
-	    @for(ctr <- getCampaignCTR(c)) {
+	    @for(ctr <- getCampaignCTR(Some(c))) {
 		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
 		};
 
@@ -136,281 +155,147 @@
 	} 	
 </script>
 
-<!-- Budget --------------------------------------------------------------------->
+<br/>
+
+<!-- Effectiveness, Cost ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'controls' ] });
-	google.setOnLoadCallback(drawVisualization);
+ 	google.load('visualization', '1', { packages : [ 'corechart' ] });
+ 	google.setOnLoadCallback(drawChart_bpAllEff);
 
-	function drawVisualization() {
+	function drawChart_bpAllEff() {
 
-		var uid = 'b_'+@c.get.id;
-
-		$('#cpCTR').append(create_dashboardDiv(uid));	
-
-		var dashboard = new google.visualization.Dashboard(
-			document.getElementById('dashboard_'+uid));
-
-		var control = new google.visualization.ControlWrapper({
-			'controlType': 'ChartRangeFilter',
-		    'containerId': 'control_'+uid,
-		    'options': {
-		    	// Filter by the date axis.
-		    	'filterColumnIndex': 0,
-		       	'ui': {
-		         	'chartType': 'LineChart',
-		         	'chartOptions': {
-		           		//'chartArea': {'height': '20%','width': '90%'},
-						'chartArea': {'width': '70%'},
-		           		'hAxis': {'baselineColor': 'none'}
-		         	},
-		         	// Display a single series that shows the closing value of the stock.
-		         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
-		         	'chartView': {
-		           		'columns': [0, 1]
-		         	},
-		         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
-		         	'minRangeSize': 86400000
-		  		}
-		    }
-		});
-
-		var chart = new google.visualization.ChartWrapper({
-		  	'chartType': 'LineChart',
-		   	'containerId': 'chart_'+uid,
-		    'options': {
-			    // Use the same chart area width as the control for axis alignment.
-		    	'title' : 'Budget history',
-				'hAxis': {
-					'format': 'HH:mm:ss EEE',
-					'title': 'Time'
-				},
-				'vAxis': {
-					'title': 'Budget balance, $'
-				},
-				'pointSize': 2
-			    //'hAxis': {'slantedText': false},
-			    //'vAxis': {'viewWindow': {'min': 0, 'max': 2000}},
-			    //'legend': {'position': 'none'}
-			}
-		});
-
-		var data = new google.visualization.DataTable();
-		data.addColumn('datetime', 'Date');
-	    data.addColumn('number', 'Budget');
-	    var ar = [];
-
-	    @for(dtb <- getBudget(c)) {
-		  	ar.push([new Date(@dtb._1),@dtb._2]);
-		};
-
-		data.addRows(ar);			
-
-		dashboard.bind(control, chart);
-		dashboard.draw(data);
-
-	} 	
-</script>
-
-				</div>				
-@** Prices *********************************************************************************************@
-				<div class="tab-pane active" id="PositionPrices">					
-
-<!-- Position Prices ------------------------------------------------------>
-<script type="text/javascript"> 
-
-@for(bp <- c.get.bannerPhrases) { //for all bannerPhrases
-	$.ajax({
-		url : '@routes.Application.ppChart(user,net,c.get.network_campaign_id,bp.id.toString())',
-		type : 'GET',
-		success : function(pp) {
-			google.load('visualization', '1', { packages : [ 'controls' ] });
- 			google.setOnLoadCallback(drawVisualization_pp(pp,@bp.id)); //draw chart	
-		}//success
-	});	//ajax
-}//for
-
-function drawVisualization_pp(pp,bpID) {
-	var uid = 'bpPP_'+bpID;
-
-	$('#PositionPrices').append(create_dashboardDiv(uid));
-
-	var dashboard = new google.visualization.Dashboard(
-		document.getElementById('dashboard_'+uid));
-
-	var control = new google.visualization.ControlWrapper({
-		'controlType': 'ChartRangeFilter',
-	    'containerId': 'control_'+uid,
-	    'options': {
-	    	// Filter by the date axis.
-	    	'filterColumnIndex': 0,
-	       	'ui': {
-	         	'chartType': 'LineChart',
-	         	'chartOptions': {
-	           		//'chartArea': {'height': '20%','width': '90%'},
-					'chartArea': {'width': '70%'},
-	           		'hAxis': {'baselineColor': 'none'}
-	         	},
-	         	// Display a single series that shows the closing value of the stock.
-	         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
-	         	'chartView': {
-	           		'columns': [0, 6]
-	         	},
-	         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
-	         	'minRangeSize': 86400000
-	  		}
-	    }
-	});
-
-	var chart = new google.visualization.ChartWrapper({
-	  	'chartType': 'LineChart',
-	   	'containerId': 'chart_'+uid,
-	    'options': {
-		    // Use the same chart area width as the control for axis alignment.
-	    	'title' : 'ActualBids and NetAdvisedBids, bp_id = ' + bpID,
+		var uid = 'bpAllEff_'+@c.id;
+		
+		$('#cpCTR').append(create_chartDiv(uid));	
+		
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'Effectiveness of all BannerPhrases',
 			'hAxis': {
-				'format': 'HH:mm:ss EEE',
-				'title': 'Time'
-			},
+				'title': 'BannerPhrases'
+			},			
 			'vAxis': {
-				'title': 'Prices'
-			},
-			'pointSize': 2
-		    //'hAxis': {'slantedText': false},
-		    //'vAxis': {'viewWindow': {'min': 0, 'max': 2000}},
-		    //'legend': {'position': 'none'}
-		}
-	});
-
-	var data = new google.visualization.DataTable();
-	data.addColumn('datetime', 'Date');
-    data.addColumn('number', 'Min');
-    data.addColumn('number', 'Max');
-    data.addColumn('number', 'Premium Min');
-    data.addColumn('number', 'Premium Max');
-    data.addColumn('number', 'Bid');
-    data.addColumn('number', 'Actual Price');
-    var ar = [];
-    				
-	for(i in pp) {//push data from ajax response to chart
-	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5], pp[i][6]]);
-	};		
-
-	data.addRows(ar);			
-
-	dashboard.bind(control, chart);
-	dashboard.draw(data);	    
-}//draw 
-
-</script>
-
-
-				</div>
-@** bpCTR *********************************************************************************************@
-				<div class="tab-pane active" id="bpCTR">
-
-<!-- BannerPhrasePerformance CTR ------------------------------------------------------>
-<script type="text/javascript">
-
-@for(bp <- c.get.bannerPhrases){
-	$.ajax({
-		url : '@routes.Application.bpChart(user,net,c.get.network_campaign_id,bp.id.toString())',
-		type : 'GET',
-		success : function(bpCTR) {
- 			google.load('visualization', '1', { packages : [ 'controls' ] });
-			google.setOnLoadCallback(drawVisualization_bpCTR(bpCTR,@bp.id));	
-		} //success
-	});//ajax
-} //for
-	
-function drawVisualization_bpCTR(bpCTR,bpID) {
-	var uid = 'bppCTR_'+bpID;
-
-	$('#bpCTR').append(create_dashboardDiv(uid));	
-
-	var dashboard = new google.visualization.Dashboard(
-		document.getElementById('dashboard_'+uid));
-
-	var control = new google.visualization.ControlWrapper({
-		'controlType': 'ChartRangeFilter',
-	    'containerId': 'control_'+uid,
-	    'options': {
-	    	// Filter by the date axis.
-	    	'filterColumnIndex': 0,
-	       	'ui': {
-	         	'chartType': 'LineChart',
-	         	'chartOptions': {
-	           		//'chartArea': {'height': '20%','width': '90%'},
-					'chartArea': {'width': '70%'},
-	           		'hAxis': {'baselineColor': 'none'}
-	         	},
-	         	// Display a single series that shows the closing value of the stock.
-	         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
-	         	'chartView': {
-	           		'columns': [0, 1]
-	         	},
-	         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
-	         	'minRangeSize': 86400000
-	  		}
-	    }
-	});
-		var chart = new google.visualization.ChartWrapper({
-	  	'chartType': 'LineChart',
-	   	'containerId': 'chart_'+uid,
-	    'options': {
-		    // Use the same chart area width as the control for axis alignment.
-	    	'title' : 'BannerPhrase CTR, id = ' + bpID,
-			'hAxis': {
-				'format': 'HH:mm:ss EEE',
-				'title': 'Time'
-			},
-			'vAxis': {
-				'title': 'CTR'
-			},
-			'pointSize': 2
-		    //'hAxis': {'slantedText': false},
-		    //'vAxis': {'viewWindow': {'min': 0, 'max': 2000}},
-		    //'legend': {'position': 'none'}
-		}
-	});
-		var data = new google.visualization.DataTable();
-	data.addColumn('datetime', 'Date');
-    data.addColumn('number', 'CTR search');
-    data.addColumn('number', 'CTR context');
-    data.addColumn('number', 'CTR SUM');
-    var ar = [];
-	    
-	for(i in bpCTR) {
-	  	ar.push([new Date(bpCTR[i][0]), bpCTR[i][1], bpCTR[i][2], bpCTR[i][3]]);
-	};	
-		   		
-	data.addRows(ar);			
-	
-	dashboard.bind(control, chart);
-	dashboard.draw(data);
-} //draw
-
-</script>
-
-				</div>
-@***********************************************************************************************@
-			</div>
-</div>
-} 
-
-@** to keep alive connection on Heroku - we use Comet socket 
-<iframe id="chartComet" src="@routes.Application.liveCharts"></iframe>
-
-@for(pp <- pp_List(bp.id)) {
-		  	ar.push([new Date(@pp._1), @pp._2, @pp._3, @pp._4, @pp._5, @pp._6]);
+				'title': 'Effectiveness, clicks/costs',
+				'0': {'logScale': false},
+                '1': {'logScale': false}				
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'},
+          		'2':{'targetAxisIndex':'1'}}
 		};
 		
-		@(	c: 			Option[dao.squerylorm.Campaign], 
-	cCTR_List: 	List[(Long, Double, Double, Double)],
-	b_List: 	List[(Long, Double)],
-	pp_List: 	Map[Long,List[(Long, Double, Double, Double, Double, Double)]],
-	bpCTR_List:	Map[Long,List[(Long, Double, Double, Double)]]) 
-	
-	 @for(ctr <- bpCTR_List(bp.id)) {
-		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'Phrases');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'Clicks');
+	    data.addColumn('number', 'Cost');
+	    var ar = [];
+	    
+	    @for(eff <- getAllBannerPhraseEffectiveness(Some(c))) {
+		  	ar.push(['@eff._1', @eff._2, @eff._3, @eff._4]);
 		};
-**@
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
+	} 	
+</script>
+
+<br/>
+
+<!-- Effectiveness, CTR - bp ------------------------------------------------------>
+<script type="text/javascript">
+ 	google.load('visualization', '1', { packages : [ 'corechart' ] });
+ 	google.setOnLoadCallback(drawChart_bpAll);
+
+	function drawChart_bpAll() {
+
+		var uid = 'bpAll_'+@c.id;
+		
+		$('#cpCTR').append(create_chartDiv(uid));	
+		
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'CTR and Eff of all BannerPhrases',
+			'hAxis': {
+				'title': 'BannerPhrases'
+			},
+			'vAxis': {
+				'title': 'Metrics',
+				'0': {'logScale': false},
+                '1': {'logScale': false}				
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'}}
+		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'Phrases');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'CTR');
+	    var ar = [];
+	    
+	    @for(ctr <- getAllBannerPhrases(Some(c))) {
+		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
+		};
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
+	} 	
+</script>
+
+<br/>
+
+<!-- Effectiveness, CTR - b ------------------------------------------------------>
+<script type="text/javascript">
+ 	google.load('visualization', '1', { packages : [ 'corechart' ] });
+ 	google.setOnLoadCallback(drawChart_bAll);
+
+	function drawChart_bAll() {
+
+		var uid = 'bAll_'+@c.id;
+		
+		$('#cpCTR').append(create_chartDiv(uid));	
+		
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'CTR and Eff of all Banners',
+			'hAxis': {
+				'title': 'Banners'
+			},
+			'vAxis': {
+				'title': 'Metrics',
+				'0': {'logScale': false},
+                '1': {'logScale': false}				
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'}}
+		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'BannerIDs');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'CTR');
+	    var ar = [];
+	    
+	    @for(ctr <- getAllBanners(Some(c))) {
+		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
+		};
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
+	} 	
+</script>
+}.getOrElse{}
+} 
