@@ -11,6 +11,7 @@
 @helper.form(action = routes.Application.charts) {
 
 <fieldset>
+	<legend align="top"><h2>Charts</h2></legend>
 	
 	@select( 
 		field = cform("user"),		
@@ -19,21 +20,19 @@
 		'_label -> "" 
 	)
 		
-	@{if (cform.value.isDefined) {
-	cform.get._1.map {user=>
-		select(  
+	
+	@cform.get._1.map {user=>
+		@select(  
 			field = cform("campaign"),		
 			options = options((new SquerylDao).getCampaigns(user,"Yandex").map(c=>c.network_campaign_id+" - "+c._login)), 
 			'_default -> "--- Choose a Campaign ---", 
 			'_label -> ""
 		)	
 	}.getOrElse()  			
-	}
-	}
-			
-	@{if (cform.value.isDefined) {
-	cform.get._2.map {cpID=>	
-  	select(  
+	
+	
+	@cform.get._2.map {cpID=>	
+  	@select(  
 		field = cform("bpID"),		
 		options = options((new SquerylDao).getCampaign(cform.get._1.get,"Yandex",cpID.split("-")(0).filter(_.isDigit)).map{c=>
 			c.bannerPhrases.map{ bp=>
@@ -47,8 +46,6 @@
 		'_label -> ""
 		)	
 	}.getOrElse()	
-	}
-	}
 	
 </fieldset>
 
@@ -58,9 +55,8 @@
 }
 
 @oc.map{c=>
-<legend align="top"><h2>Charts</h2></legend>
 
-<div id="cpCTR" align="center"></div>
+<div id="Charts" align="center"></div>
 
 <style type="text/css">  
 	.chartDiv {  
@@ -110,7 +106,7 @@
 
 		var uid = 'cpCTR_'+@c.id;
 
-		$('#cpCTR').append(create_dashboardDiv(uid));	
+		$('#Charts').append(create_dashboardDiv(uid));	
 
 		var dashboard = new google.visualization.Dashboard(
 			document.getElementById('dashboard_'+uid));
@@ -166,7 +162,7 @@
 	    data.addColumn('number', 'CTR SUM');
 	    var ar = [];
 
-	    @for(ctr <- getCampaignCTR(Some(c))) {
+	    @for(ctr <- get_c_CTR(Some(c))) {
 		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
 		};
 
@@ -189,7 +185,7 @@
 
 		var uid = 'bpAllEff_'+@c.id;
 		
-		$('#cpCTR').append(create_chartDiv(uid));	
+		$('#Charts').append(create_chartDiv(uid));	
 		
 		var options = {
 			// Use the same chart area width as the control for axis alignment.
@@ -216,7 +212,7 @@
 	    data.addColumn('number', 'Cost');
 	    var ar = [];
 	    
-	    @for(eff <- getAllBannerPhraseEffectiveness(Some(c))) {
+	    @for(eff <- get_c_bpEffectiveness(Some(c))) {
 		  	ar.push(['@eff._1', @eff._2, @eff._3, @eff._4]);
 		};
 
@@ -239,7 +235,7 @@
 
 		var uid = 'bpAll_'+@c.id;
 		
-		$('#cpCTR').append(create_chartDiv(uid));	
+		$('#Charts').append(create_chartDiv(uid));	
 		
 		var options = {
 			// Use the same chart area width as the control for axis alignment.
@@ -263,7 +259,7 @@
 	    data.addColumn('number', 'CTR');
 	    var ar = [];
 	    
-	    @for(ctr <- getAllBannerPhrases(Some(c))) {
+	    @for(ctr <- get_c_bpEffectivenessCTR(Some(c))) {
 		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
 		};
 
@@ -286,7 +282,7 @@
 
 		var uid = 'bAll_'+@c.id;
 		
-		$('#cpCTR').append(create_chartDiv(uid));	
+		$('#Charts').append(create_chartDiv(uid));	
 		
 		var options = {
 			// Use the same chart area width as the control for axis alignment.
@@ -310,7 +306,7 @@
 	    data.addColumn('number', 'CTR');
 	    var ar = [];
 	    
-	    @for(ctr <- getAllBanners(Some(c))) {
+	    @for(ctr <- get_c_bEffectivenessCTR(Some(c))) {
 		  	ar.push(['@ctr._1', @ctr._2, @ctr._3]);
 		};
 
@@ -322,4 +318,102 @@
 	} 	
 </script>
 }.getOrElse{}
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------------ -->
+<!-- Charts for a specific BannerPhrase ---------------------------------------------------------------------------------------------------------------------------------->
+
+@cform.get._3.map{bpIDraw=>
+@defining( (cform.get._1.get, "Yandex", cform.get._2.get.split("-")(0).filter(_.isDigit), bpIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID, bpID) =>
+	
+<!-- Position Prices ------------------------------------------------------>
+<script type="text/javascript"> 
+//for all bannerPhrases without region "" and 0
+
+	$.ajax({
+		url : '@routes.Application.drawCharts("bp_PP",user,net,cID,bpID)',
+		type : 'GET',
+		success : function(pp) {
+			google.load('visualization', '1', { packages : [ 'controls' ] });
+ 			google.setOnLoadCallback(drawChart_PP(pp, '@bpID')); //draw chart	
+		}//success
+	});	//ajax
+
+
+function drawChart_PP(pp,bpID) {
+	var uid = 'bpPP_'+bpID;
+
+	$('#Charts').append(create_dashboardDiv(uid));
+
+	var dashboard = new google.visualization.Dashboard(
+		document.getElementById('dashboard_'+uid));
+
+	var control = new google.visualization.ControlWrapper({
+		'controlType': 'ChartRangeFilter',
+	    'containerId': 'control_'+uid,
+	    'options': {
+	    	// Filter by the date axis.
+	    	'filterColumnIndex': 0,
+	       	'ui': {
+	         	'chartType': 'LineChart',
+	         	'chartOptions': {
+	           		//'chartArea': {'height': '20%','width': '90%'},
+					'chartArea': {'width': '70%'},
+	           		'hAxis': {'baselineColor': 'none'}
+	         	},
+	         	// Display a single series that shows the closing value of the stock.
+	         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
+	         	'chartView': {
+	           		'columns': [0, 6]
+	         	},
+	         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
+	         	'minRangeSize': 86400000
+	  		}
+	    }
+	});
+
+	var chart = new google.visualization.ChartWrapper({
+	  	'chartType': 'LineChart',
+	   	'containerId': 'chart_'+uid,
+	    'options': {
+		    // Use the same chart area width as the control for axis alignment.
+	    	'title' : 'ActualBids and NetAdvisedBids, bp_id = ' + bpID,
+			'hAxis': {
+				'format': 'HH:mm:ss EEE',
+				'title': 'Time'
+			},
+			'vAxis': {
+				'title': 'Prices'
+			},
+			'pointSize': 2
+		    //'hAxis': {'slantedText': false},
+		    //'vAxis': {'viewWindow': {'min': 0, 'max': 2000}},
+		    //'legend': {'position': 'none'}
+		}
+	});
+
+	var data = new google.visualization.DataTable();
+	data.addColumn('datetime', 'Date');
+    data.addColumn('number', 'Min');
+    data.addColumn('number', 'Max');
+    data.addColumn('number', 'Premium Min');
+    data.addColumn('number', 'Premium Max');
+    data.addColumn('number', 'Bid');
+    data.addColumn('number', 'Actual Price');
+    var ar = [];
+   				
+	for(i in pp) {//push data from ajax response to chart
+	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5], pp[i][6]]);
+	};		
+
+	data.addRows(ar);			
+
+	dashboard.bind(control, chart);
+	dashboard.draw(data);    
+}//draw 
+
+</script>	
+
+}
+}.getOrElse()
+
 } 

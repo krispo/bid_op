@@ -29,6 +29,6 @@ object Helpers {
     tuple(
       "user" -> optional(text),
       "campaign" -> optional(text),
-      "bpID" -> optional(text)))
+      "bpID" -> optional(text))).fill(None,None,None)
 }
 

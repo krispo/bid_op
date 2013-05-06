@@ -124,7 +124,7 @@
 	    data.addColumn('number', 'CTR SUM');
 	    var ar = [];
 
-	    @for(ctr <- getCampaignCTR(c)) {
+	    @for(ctr <- get_c_CTR(c)) {
 		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
 		};
 

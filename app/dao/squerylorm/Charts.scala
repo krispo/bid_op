@@ -15,7 +15,7 @@ object Charts {
     } getOrElse (Nil)
 
   //Campaign CTR evolution in time with cumulative clicks and shows
-  def getCampaignCTR(oc: Option[Campaign]): List[(Long, Double, Double, Double)] = {
+  def get_c_CTR(oc: Option[Campaign]): List[(Long, Double, Double, Double)] = {
     oc map { c =>
       val cp = c.performanceHistory
       val cClicksContext = cp.map(_.clicks_context).scan(0)(_ + _).tail
@@ -37,7 +37,7 @@ object Charts {
   }
 
   //BannerPhrase CTR evolution in time with cumulative clicks and shows
-  def getBannerPhraseCTR(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double)] = {
+  def get_bp_CTR(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double)] = {
     oc map { c =>
       val obp = BannerPhrase.select(c, bpID)
 
@@ -63,7 +63,7 @@ object Charts {
   }
 
   //ActualBids and NetAdvisedBids evolution in time
-  def getPositionPrices(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double, Double, Double, Double)] = { //time,min,max,pmin,pmax,bid,actualprice
+  def get_bp_PP(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double, Double, Double, Double)] = { //time,min,max,pmin,pmax,bid,actualprice
     oc map { c =>
       val obp = BannerPhrase.select(c, bpID)
       obp map { bp =>
@@ -86,7 +86,7 @@ object Charts {
   }
 
   //Effectiveness of all bp for the campaign 
-  def getAllBannerPhraseEffectiveness(oc: Option[Campaign]): List[(String, Double, Double, Double)] = {
+  def get_c_bpEffectiveness(oc: Option[Campaign]): List[(String, Double, Double, Double)] = {
     oc map { c => //network_region_id="" - only for bp with XMLreport
       c.bannerPhrases.filter(_.region.map(_.network_region_id == "0").getOrElse(false)) map { bp =>
         val obp = BannerPhrase.select(c, bp.id)
@@ -103,7 +103,7 @@ object Charts {
   }
 
   // (Effectiveness,CTR) of all bp for the campaign 
-  def getAllBannerPhrases(oc: Option[Campaign]): List[(String, Double, Double)] = {
+  def get_c_bpEffectivenessCTR(oc: Option[Campaign]): List[(String, Double, Double)] = {
     oc map { c => //network_region_id="" - only for bp with XMLreport
       c.bannerPhrases.filter(_.region.map(_.network_region_id == "").getOrElse(false)) map { bp =>
         val obp = BannerPhrase.select(c, bp.id)
@@ -121,7 +121,7 @@ object Charts {
   }
 
   //(Effectiveness,CTR) of all b for the campaign 
-  def getAllBanners(oc: Option[Campaign]): List[(String, Double, Double)] = {
+  def get_c_bEffectivenessCTR(oc: Option[Campaign]): List[(String, Double, Double)] = {
     oc map { c => //network_region_id="" - only for bp with XMLreport
       val byB = c.bannerPhrases
         .filter(_.region.map(_.network_region_id == "").getOrElse(false))
