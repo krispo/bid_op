@@ -200,17 +200,6 @@ object CampaignController extends Controller with Secured {
                   val domPerf = dao.createCampaignPerformanceReport(c, performance)
                   println("CREATED PERFORMANCE!!!!!!!!!!!!!!")
 
-                  /** Create Permutation-Recommendation **/
-                  /*c.historyStartDate = c.startDate
-                  c.historyEndDate = c.endDate.getOrElse(new DateTime())
-
-                  println("<<<<< " + c.permutationHistory.toString + " >>>>>")
-                  println("<<<<< " + c.curves.toString + " >>>>>")
-                  if (runOptimizerAlgorithm(c, performance, dao))
-                    println("CREATED PERMUTATION-RECOMMENDATION!!!!!!!!!!!!!!")
-                  else
-                    println("Algorithm is FAILED!!!!!!!!!!!!")*/
-
                   // respond with CREATED header and Performance body
                   Created(toJson[serializers.Performance](serializers.Performance._apply(domPerf))) as (JSON)
                 } getOrElse BadRequest
@@ -224,6 +213,16 @@ object CampaignController extends Controller with Secured {
     })
 
   def runOptimizerAlgorithm(c: Campaign, performance: serializers.Performance, dao: SquerylDao): Boolean = {
+    /** Create Permutation-Recommendation **/
+    /*c.historyStartDate = c.startDate
+      c.historyEndDate = c.endDate.getOrElse(new DateTime())
+
+      println("<<<<< " + c.permutationHistory.toString + " >>>>>")
+      println("<<<<< " + c.curves.toString + " >>>>>")
+      if (runOptimizerAlgorithm(c, performance, dao))
+         println("CREATED PERMUTATION-RECOMMENDATION!!!!!!!!!!!!!!")
+      else
+         println("Algorithm is FAILED!!!!!!!!!!!!")*/
     try {
       val PR = c.permutationHistory match {
         case Nil => {
@@ -245,9 +244,13 @@ object CampaignController extends Controller with Secured {
         }
         case cList => {
           import optimizer._
-          val opt = new Optimizer
-          val loc_permutation = opt.createLocalPermutation(c, performance.dateTime)
-          dao.createPermutaionRecommendation(loc_permutation, c, c.curves.head)
+          val opt = new OptimizerPro
+          val bpBid = c.bannerPhrases.map(bp => bp -> 0.01).toMap
+
+          dao.createPermutaionRecommendation(c, bpBid, performance.dateTime)
+
+          //val loc_permutation = opt.createLocalPermutation(c, performance.dateTime)
+          //dao.createPermutaionRecommendation(loc_permutation, c, c.curves.head)
         }
       }
       true
@@ -366,45 +369,12 @@ object CampaignController extends Controller with Secured {
    * GET /user/:user/net/:net/camp/:id/charts
    */
   def charts(user_name: String, net_name: String, network_campaign_id: String, password: String) =
-    Action { implicit request => //TODO - need to add Authentication!!!
+    Action {
       import scala.concurrent.Future
       import scala.concurrent.ExecutionContext.Implicits.global
-      import java.util.concurrent.TimeUnit
-
-      val futureResult = Future[Result] {
-
-        val dao = new SquerylDao()
-
-        dao.getUser(user_name, password) match {
-          case None => NotFound("User NOT FOUND... Invalid name or password...")
-          case Some(user) => {
-            dao.getCampaign(user_name, net_name, network_campaign_id) match {
-              case None => NotFound("CAMPAIGN is NOT FOUND...")
-              case Some(c) =>
-                val iso_fmt = format.ISODateTimeFormat.dateTime()
-                val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-                val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-                //we will retrieve all data from db 
-                c.historyStartDate = sdate
-                c.historyEndDate = edate
-
-                //generate charts in browser
-                Ok(views.html.charts(user.name, net_name, Some(c)))
-            }
-          }
-        }
-      }
-
-      // if service handles request too slow => return Timeout response
-      val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
-        message = "Oops, TIMEOUT while calling BID server...",
-        duration = 3,
-        unit = TimeUnit.MINUTES)
-
       Async {
-        Future.firstCompletedOf(Seq(futureResult, timeoutFuture)).map {
-          case f: Result => f
-          case t: String => InternalServerError(t)
+        Future {
+          Ok(views.html.charts(common.Helpers.cform))
         }
       }
     }

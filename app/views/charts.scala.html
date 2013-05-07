@@ -1,13 +1,61 @@
-@(	user: 		String,
-	net: 		String,
-	c: 			Option[dao.squerylorm.Campaign]) 
+@(cform: 	Form[(Option[String], Option[String], Option[String])]) 
 
-@import org.joda.time.DateTime   
+@import helper._
+@import org.joda.time.DateTime
+@import dao.squerylorm.{SquerylDao, User} 
 @import dao.squerylorm.Charts._ 
 
 @main(title = "BOS charts") {
 
-<style type="text/css">  
+@helper.form(action = routes.Application.charts) {
+
+<fieldset>
+	<legend align="top"><h2>Charts</h2></legend>
+	
+	@select( 
+		field = cform("user"),		
+		options = options(User.selectAll.map(_.name)), 
+		'_default -> "--- Choose a User ---", 
+		'_label -> "" 
+	)
+		
+	
+	@cform.get._1.map {user=>
+		@select(  
+			field = cform("campaign"),		
+			options = options((new SquerylDao).getCampaigns(user,"Yandex").map(c=>c.network_campaign_id+" - "+c._login)), 
+			'_default -> "--- Choose a Campaign ---", 
+			'_label -> ""
+		)	
+	}.getOrElse()  			
+	
+	
+	@cform.get._2.map {cpID=>	
+  	@select(  
+		field = cform("bpID"),		
+		options = options((new SquerylDao).getCampaign(cform.get._1.get,"Yandex",cpID.split("-")(0).filter(_.isDigit)).map{c=>
+			c.bannerPhrases.filter(_.banner.map(b=>b.network_banner_id!="0" & b.network_banner_id!="").getOrElse(false)).map{ bp=>
+				bp.id.toString+
+				" - b=" + bp.banner.map(_.network_banner_id).getOrElse("-1")+
+				" - ph=" + bp.phrase.map(_.network_phrase_id).getOrElse("-1")+
+				" - r=" + bp.region.map(_.network_region_id).getOrElse("-1")
+			}
+		}.getOrElse(Nil)), 
+		'_default -> "--- Choose a BannerPhrase ---", 
+		'_label -> ""
+		)	
+	}.getOrElse()	
+	
+</fieldset>
+
+<div class="actions">
+	<input type="submit" class="btn primary" value="Choose">
+</div>
+}
+
+<div id="Charts" align="center"></div>
+
+<style type="text/css">   
 	.chartDiv {  
     	width: 80%;  
         height: 300px;  
@@ -33,7 +81,7 @@
         }         
         function create_chartDiv(id) {         
             var div = document.createElement("div");  
-            div.id = "chart_"+id;   
+            div.id = "chart_"+id;  
             div.className = "chartDiv";
             return div
         } 
@@ -41,35 +89,47 @@
             var div = document.createElement("div");  
             div.id = "control_"+id;  
             div.className = "controlDiv";
-            div.hidden = true; //for faster loading the charts we hide controls
+            //div.hidden = true; //for faster loading the charts we hide controls
         	return div
         } 
 </script>  
 
+<script type="text/javascript">
+	google.load('visualization', '1', { packages : [ 'controls' ] });
+	google.load('visualization', '1', { packages : [ 'corechart' ] });	
+</script>
 
+<!-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- -->
+<!-- Charts for the whole CAMPAIGN ---------------------------------------------------------------------------------------------------------------------------------------------- -->
+@cform.get._2.map{cIDraw=>
+@defining( (cform.get._1.get, "Yandex", cIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID) =>
 
-<div class="row-fluid sortable">
-			<ul class="nav nav-tabs" id="myTab" >
-				<li class="active"><a href="#cpCTR" data-toggle="tab">Campaign CTR</a></li>
-				<li><a href="#PositionPrices" data-toggle="tab">Prices</a></li>				
-				<li><a href="#bpCTR" data-toggle="tab">BannerPhrase CTR</a></li>
-			</ul>
-
-			<div class="tab-content">
-@** cpCTR + Budget *********************************************************************************************@
-				<div class="tab-pane active" id="cpCTR">					
+<script type="text/javascript">
+	var uid1 = 'cpCTR_'+'@cID';
+	$('#Charts').append(create_dashboardDiv(uid1));
+	
+	var uid2 = 'bpAllEff_'+'@cID';
+	$('#Charts').append(create_chartDiv(uid2));
+	
+	var uid3 = 'bpAll_'+'@cID';		
+	$('#Charts').append(create_chartDiv(uid3));
+	
+	var uid4 = 'bAll_'+'@cID';
+	$('#Charts').append(create_chartDiv(uid4));		
+</script>
 
 <!-- CampaignPerformance CTR ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'controls' ] });
-	google.setOnLoadCallback(drawVisualization);
+$.ajax({
+	url : '@routes.Application.drawCharts("c_CTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {		
+		google.setOnLoadCallback(drawChart_cCTR(res,uid1)); //draw chart	
+	}//success
+});	//ajax
 
-	function drawVisualization() {
-
-		var uid = 'cpCTR_'+@c.get.id;
-
-		$('#cpCTR').append(create_dashboardDiv(uid));	
-
+	function drawChart_cCTR(res,uid) {
+ 	
 		var dashboard = new google.visualization.Dashboard(
 			document.getElementById('dashboard_'+uid));
 
@@ -123,117 +183,187 @@
 	    data.addColumn('number', 'CTR context');
 	    data.addColumn('number', 'CTR SUM');
 	    var ar = [];
-
-	    @for(ctr <- getCampaignCTR(c)) {
-		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
-		};
-
-		data.addRows(ar);			
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([new Date(res[i][0]), res[i][1], res[i][2], res[i][3]]);
+		};		
+		
+		data.addRows(ar);	    		
 
 		dashboard.bind(control, chart);
 		dashboard.draw(data);
-
 	} 	
 </script>
 
-<!-- Budget --------------------------------------------------------------------->
+<!-- Effectiveness, Cost ------------------------------------------------------>
 <script type="text/javascript">
- 	google.load('visualization', '1', { packages : [ 'controls' ] });
-	google.setOnLoadCallback(drawVisualization);
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bpEffectiveness", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bpAllEff(res,uid2)); //draw chart	
+	}//success
+});	//ajax	
 
-	function drawVisualization() {
-
-		var uid = 'b_'+@c.get.id;
-
-		$('#cpCTR').append(create_dashboardDiv(uid));	
-
-		var dashboard = new google.visualization.Dashboard(
-			document.getElementById('dashboard_'+uid));
-
-		var control = new google.visualization.ControlWrapper({
-			'controlType': 'ChartRangeFilter',
-		    'containerId': 'control_'+uid,
-		    'options': {
-		    	// Filter by the date axis.
-		    	'filterColumnIndex': 0,
-		       	'ui': {
-		         	'chartType': 'LineChart',
-		         	'chartOptions': {
-		           		//'chartArea': {'height': '20%','width': '90%'},
-						'chartArea': {'width': '70%'},
-		           		'hAxis': {'baselineColor': 'none'}
-		         	},
-		         	// Display a single series that shows the closing value of the stock.
-		         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
-		         	'chartView': {
-		           		'columns': [0, 1]
-		         	},
-		         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
-		         	'minRangeSize': 86400000
-		  		}
-		    }
-		});
-
-		var chart = new google.visualization.ChartWrapper({
-		  	'chartType': 'LineChart',
-		   	'containerId': 'chart_'+uid,
-		    'options': {
-			    // Use the same chart area width as the control for axis alignment.
-		    	'title' : 'Budget history',
-				'hAxis': {
-					'format': 'HH:mm:ss EEE',
-					'title': 'Time'
-				},
-				'vAxis': {
-					'title': 'Budget balance, $'
-				},
-				'pointSize': 2
-			    //'hAxis': {'slantedText': false},
-			    //'vAxis': {'viewWindow': {'min': 0, 'max': 2000}},
-			    //'legend': {'position': 'none'}
-			}
-		});
-
-		var data = new google.visualization.DataTable();
-		data.addColumn('datetime', 'Date');
-	    data.addColumn('number', 'Budget');
-	    var ar = [];
-
-	    @for(dtb <- getBudget(c)) {
-		  	ar.push([new Date(@dtb._1),@dtb._2]);
+	function drawChart_bpAllEff(res,uid) {
+	
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'Effectiveness of all BannerPhrases',
+			'hAxis': {
+				'title': 'BannerPhrases'
+			},			
+			'vAxis': {
+				'title': 'Effectiveness, clicks/costs',
+				'0': {'logScale': false},
+                '1': {'logScale': false},
+                '2': {'logScale': false}
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'},
+          		'2':{'targetAxisIndex':'1'}}
 		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'Phrases');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'Clicks');
+	    data.addColumn('number', 'Cost');
+	    var ar = [];
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2], res[i][3]]);
+		};			    
 
 		data.addRows(ar);			
 
-		dashboard.bind(control, chart);
-		dashboard.draw(data);
-
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
 	} 	
 </script>
 
-				</div>				
-@** Prices *********************************************************************************************@
-				<div class="tab-pane active" id="PositionPrices">					
+<!-- Effectiveness, CTR - bp ------------------------------------------------------>
+<script type="text/javascript">
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bpEffectivenessCTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bpAll(res,uid3)); //draw chart	
+	}//success
+});	//ajax	
+
+	function drawChart_bpAll(res,uid) {
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'CTR and Eff of all BannerPhrases',
+			'hAxis': {
+				'title': 'BannerPhrases'
+			},
+			'vAxis': {
+				'title': 'Metrics',
+				'0': {'logScale': false},
+                '1': {'logScale': false}				
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'}}
+		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'Phrases');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'CTR');
+	    var ar = [];
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2]]);
+		};	
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
+	} 	
+</script>
+
+<!-- Effectiveness, CTR - b ------------------------------------------------------>
+<script type="text/javascript">
+$.ajax({
+	url : '@routes.Application.drawCharts("c_bEffectivenessCTR", user,net,cID,"-1")',
+	type : 'GET',
+	success : function(res) {
+	 	google.setOnLoadCallback(drawChart_bAll(res,uid4)); //draw chart	
+	}//success
+});	//ajax	
+
+	function drawChart_bAll(res,uid) {		
+		var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'CTR and Eff of all Banners',
+			'hAxis': {
+				'title': 'Banners'
+			},
+			'vAxis': {
+				'title': 'Metrics',
+				'0': {'logScale': false},
+                '1': {'logScale': false}				
+			},			
+        	'series':{
+          		'0':{'targetAxisIndex':'0'},
+          		'1':{'targetAxisIndex':'1'}}
+		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('string', 'BannerIDs');
+	    data.addColumn('number', 'Effectiveness');
+	    data.addColumn('number', 'CTR');
+	    var ar = [];
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2]]);
+		};	
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ColumnChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+        
+	} 	
+</script>
+}
+}.getOrElse{}
+
+
+
+<!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------------ -->
+<!-- Charts for a specific BannerPhrase ---------------------------------------------------------------------------------------------------------------------------------->
+
+@cform.get._3.map{bpIDraw=>
+@defining( (cform.get._1.get, "Yandex", cform.get._2.get.split("-")(0).filter(_.isDigit), bpIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID, bpID) =>
+
+<script type="text/javascript">
+	var uid5 = 'bpPP_'+'@bpID';
+	$('#Charts').append(create_dashboardDiv(uid5));
+	
+	var uid6 = 'bppCTR_'+'@bpID';
+	$('#Charts').append(create_dashboardDiv(uid6));	
+</script>	
 
 <!-- Position Prices ------------------------------------------------------>
 <script type="text/javascript"> 
-
-@for(bp <- c.get.bannerPhrases) { //for all bannerPhrases
+//for all bannerPhrases without region "" and 0
 	$.ajax({
-		url : '@routes.Application.ppChart(user,net,c.get.network_campaign_id,bp.id.toString())',
+		url : '@routes.Application.drawCharts("bp_PP",user,net,cID,bpID)',
 		type : 'GET',
 		success : function(pp) {
-			google.load('visualization', '1', { packages : [ 'controls' ] });
- 			google.setOnLoadCallback(drawVisualization_pp(pp,@bp.id)); //draw chart	
+ 			google.setOnLoadCallback(drawChart_PP(pp, uid5, '@bpID')); //draw chart	
 		}//success
 	});	//ajax
-}//for
 
-function drawVisualization_pp(pp,bpID) {
-	var uid = 'bpPP_'+bpID;
-
-	$('#PositionPrices').append(create_dashboardDiv(uid));
-
+function drawChart_PP(pp,uid,bpID) {
 	var dashboard = new google.visualization.Dashboard(
 		document.getElementById('dashboard_'+uid));
 
@@ -253,7 +383,7 @@ function drawVisualization_pp(pp,bpID) {
 	         	// Display a single series that shows the closing value of the stock.
 	         	// Thus, this view has two columns: the date (axis) and the stock value (line series).
 	         	'chartView': {
-	           		'columns': [0, 5]
+	           		'columns': [0, 6]
 	         	},
 	         	// 1 day in milliseconds = 24 * 60 * 60 * 1000 = 86,400,000
 	         	'minRangeSize': 86400000
@@ -287,45 +417,33 @@ function drawVisualization_pp(pp,bpID) {
     data.addColumn('number', 'Max');
     data.addColumn('number', 'Premium Min');
     data.addColumn('number', 'Premium Max');
+    data.addColumn('number', 'Bid');
     data.addColumn('number', 'Actual Price');
     var ar = [];
-    				
+   				
 	for(i in pp) {//push data from ajax response to chart
-	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5]]);
+	  	ar.push([new Date(pp[i][0]), pp[i][1], pp[i][2], pp[i][3], pp[i][4], pp[i][5], pp[i][6]]);
 	};		
 
 	data.addRows(ar);			
 
 	dashboard.bind(control, chart);
-	dashboard.draw(data);	    
+	dashboard.draw(data);    
 }//draw 
-
-</script>
-
-
-				</div>
-@** bpCTR *********************************************************************************************@
-				<div class="tab-pane active" id="bpCTR">
+</script>	
 
 <!-- BannerPhrasePerformance CTR ------------------------------------------------------>
 <script type="text/javascript">
-
-@for(bp <- c.get.bannerPhrases){
+//for all bannerPhrases with region 0
 	$.ajax({
-		url : '@routes.Application.bpChart(user,net,c.get.network_campaign_id,bp.id.toString())',
+		url : '@routes.Application.drawCharts("bp_CTR",user,net,cID,bpID)',
 		type : 'GET',
 		success : function(bpCTR) {
- 			google.load('visualization', '1', { packages : [ 'controls' ] });
-			google.setOnLoadCallback(drawVisualization_bpCTR(bpCTR,@bp.id));	
+			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,uid6,'@bpID'));	
 		} //success
 	});//ajax
-} //for
 	
-function drawVisualization_bpCTR(bpCTR,bpID) {
-	var uid = 'bppCTR_'+bpID;
-
-	$('#bpCTR').append(create_dashboardDiv(uid));	
-
+function drawChart_bpCTR(bpCTR,uid,bpID) {
 	var dashboard = new google.visualization.Dashboard(
 		document.getElementById('dashboard_'+uid));
 
@@ -388,28 +506,8 @@ function drawVisualization_bpCTR(bpCTR,bpID) {
 	dashboard.draw(data);
 } //draw
 
-</script>
+</script>	
+}
+}.getOrElse()
 
-				</div>
-@***********************************************************************************************@
-			</div>
-</div>
 } 
-
-@** to keep alive connection on Heroku - we use Comet socket 
-<iframe id="chartComet" src="@routes.Application.liveCharts"></iframe>
-
-@for(pp <- pp_List(bp.id)) {
-		  	ar.push([new Date(@pp._1), @pp._2, @pp._3, @pp._4, @pp._5, @pp._6]);
-		};
-		
-		@(	c: 			Option[dao.squerylorm.Campaign], 
-	cCTR_List: 	List[(Long, Double, Double, Double)],
-	b_List: 	List[(Long, Double)],
-	pp_List: 	Map[Long,List[(Long, Double, Double, Double, Double, Double)]],
-	bpCTR_List:	Map[Long,List[(Long, Double, Double, Double)]]) 
-	
-	 @for(ctr <- bpCTR_List(bp.id)) {
-		  	ar.push([new Date(@ctr._1), @ctr._2, @ctr._3, @ctr._4]);
-		};
-**@
