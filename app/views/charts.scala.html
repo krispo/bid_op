@@ -358,7 +358,10 @@ if (bpID!=""){
 	$('#bpCharts').append(create_dashboardDiv(uid5));
 	
 	var uid6 = 'bppCTR_'+bpID;
-	$('#bpCharts').append(create_dashboardDiv(uid6));		
+	$('#bpCharts').append(create_dashboardDiv(uid6));
+	
+	var uid7 = 'bpScatter_'+bpID;
+	$('#bpCharts').append(create_dashboardDiv(uid7));
 
 <!-- Position Prices ------------------------------------------------------>
 //for all bannerPhrases without region "" and 0
@@ -457,7 +460,6 @@ function drawChart_PP(pp,uid,bpID) {
 			cID:'@cID',
 			bpID: bpID
 		},
-		type : 'GET',
 		success : function(bpCTR) {
 			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,uid6,bpID));	
 		} //success
@@ -525,6 +527,51 @@ function drawChart_bpCTR(bpCTR,uid,bpID) {
 	dashboard.bind(control, chart);
 	dashboard.draw(data);
 } //draw	
+
+<!-- ScatterPlot for BannerPhrase  ------------------------------------------------------>
+	$.ajax({
+		url : '/drawCharts', 		
+		type : 'GET',		
+		data : {
+			ctype:'bp_Scatter',
+			user:'@user',
+			net:'@net',
+			cID:'@cID',
+			bpID: bpID
+		},
+		success : function(res) {
+			google.setOnLoadCallback(drawChart_bpScatter(res,uid7,bpID));	
+		} //success
+	});//ajax
+	
+function drawChart_bpScatter(res,uid,bpID) {
+	var options = {
+			// Use the same chart area width as the control for axis alignment.
+		    'title' : 'Clicks and Shows to Price, bp_id='+bpID,
+			'hAxis': {
+				'title': 'Price'
+			},			
+			'vAxis': {
+				'title': 'Clicks and Shows'
+			}
+		};
+		
+		var data = new google.visualization.DataTable();
+		data.addColumn('number', 'Price');
+	    data.addColumn('number', 'Clicks');
+	    data.addColumn('number', 'Shows');
+	    var ar = [];
+	    
+	    for(i in res) {//push data from ajax response to chart
+		  	ar.push([res[i][0], res[i][1], res[i][2]]);
+		};			    
+
+		data.addRows(ar);			
+
+		var chart = new google.visualization.ScatterChart(document.getElementById('chart_'+uid));
+        chart.draw(data, options);
+} //draw	
+
 }//defining
 }//cform
 }//if 

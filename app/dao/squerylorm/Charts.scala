@@ -4,7 +4,7 @@ import org.joda.time.DateTime
 import scala.concurrent._
 import scala.concurrent.{ Future, Promise }
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{ Duration, TimeUnit }
 
 object Charts {
 
@@ -145,11 +145,67 @@ object Charts {
     } getOrElse (Nil)
   }
 
+  /* Scatter plot clicks/impress to price */
+  def get_bp_Scatter(oc: Option[Campaign], bpID: Long): List[(Double, Int, Int)] = {
+    oc map { c =>
+      val obpNa = BannerPhrase.select(c, bpID) //for price
+      val obpP = BannerPhrase.selectWithRegion(c, bpID, "0") //for performance (detailed information)
+      (obpNa, obpP) match {
+        case (Some(bpNa), Some(bpP)) =>
+          val u = syncDateTime(c, bpNa, bpP).map {
+            case (dt, na, p) =>
+              (na.e, p.clicks_search + p.clicks_context, p.impress_search + p.impress_context)
+          }
+          //println(u)
+          u
+        case _ => Nil
+      }
+    } getOrElse (Nil) // Nil
+  }
+
   //CTR function
   def ctr(cl: Double, sh: Double): Double = {
     if (sh != 0)
       cl / sh
     else
       0
+  }
+
+  def syncDateTime(c: Campaign, bpNa: BannerPhrase, bpP: BannerPhrase): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
+    val nMinutes = 15
+    val start = c.historyStartDate
+      .minusMillis(c.historyStartDate.getMillisOfDay())
+      .plusMinutes(nMinutes * (c.historyStartDate.getMinuteOfDay() / nMinutes + 1))
+
+    def f(dt: DateTime, naL: List[NetAdvisedBidHistory], pL: List[BannerPhrasePerformance], isHoleBefore: Boolean): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
+      if (naL.isEmpty | pL.isEmpty)
+        Nil
+      else {
+        //println(naL.length + " - " + pL.length + " : " + naL.head.dateTime + " - " + pL.head.dateTime)
+        val ah = naL.head
+        val ph = pL.head
+
+        val ahA = ah.dateTime.isAfter(dt) | ah.dateTime.isEqual(dt)
+        val ahB = ah.dateTime.isBefore(dt.plusMinutes(nMinutes))
+        val phA = ph.dateTime.isAfter(dt) | ph.dateTime.isEqual(dt)
+        val phB = ph.dateTime.isBefore(dt.plusMinutes(nMinutes))
+
+        (ahA, ahB, phA, phB) match {
+          case (true, true, true, true) =>
+            if (!isHoleBefore)
+              (dt, ah, ph) :: f(dt.plusMinutes(nMinutes), naL.tail, pL.tail, false)
+            else
+              f(dt.plusMinutes(nMinutes), naL.tail, pL.tail, false)
+
+          case (true, false, true, true) => f(dt.plusMinutes(nMinutes), naL, pL.tail, true)
+          case (true, true, true, false) => f(dt.plusMinutes(nMinutes), naL.tail, pL, true)
+          case (true, false, true, false) => f(dt.plusMinutes(nMinutes), naL, pL, true)
+          case (false, _, true, _) => f(dt, naL.tail, pL, true)
+          case (true, _, false, _) => f(dt, naL, pL.tail, true)
+          case (false, _, false, _) => f(dt, naL.tail, pL.tail, true)
+        }
+      }
+    }
+    f(start, bpNa.netAdvisedBidsHistory, bpP.performanceHistory, false)
   }
 }
