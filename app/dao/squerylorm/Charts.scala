@@ -152,12 +152,29 @@ object Charts {
       val obpP = BannerPhrase.selectWithRegion(c, bpID, "0") //for performance (detailed information)
       (obpNa, obpP) match {
         case (Some(bpNa), Some(bpP)) =>
-          val u = syncDateTime(c, bpNa, bpP).map {
+          syncDateTime(c, bpNa, bpP).map {
             case (dt, na, p) =>
               (na.e, p.clicks_search + p.clicks_context, p.impress_search + p.impress_context)
           }
-          //println(u)
-          u
+        case _ => Nil
+      }
+    } getOrElse (Nil) // Nil
+  }
+
+  /* Line plot clicks vs impress vs price */
+  def get_bp_LinePlot(oc: Option[Campaign], bpID: Long): List[(Long, Int, Int, Double)] = {
+    oc map { c =>
+      val obpNa = BannerPhrase.select(c, bpID) //for price
+      val obpP = BannerPhrase.selectWithRegion(c, bpID, "0") //for performance (detailed information)
+      (obpNa, obpP) match {
+        case (Some(bpNa), Some(bpP)) =>
+          syncDateTime(c, bpNa, bpP).map {
+            case (dt, na, p) =>
+              (dt.getMillis(),
+                p.clicks_search + p.clicks_context,
+                p.impress_search + p.impress_context,
+                na.e)
+          }
         case _ => Nil
       }
     } getOrElse (Nil) // Nil

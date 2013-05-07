@@ -186,6 +186,17 @@ object Application extends Controller with Secured {
                 })
               }
 
+              case "bp_LinePlot" => { /* LinePlot Clicks vs Shows vs Price */
+                val res = Charts.get_bp_LinePlot(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
             }
 
             Ok(jsval) as JSON
