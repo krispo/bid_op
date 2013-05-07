@@ -110,6 +110,23 @@ class SquerylDao extends dao.Dao {
    * probably add back curve to Permutation and don't use curve in def.
    * TODO: Fix bid calculation: it sets bid = 1 now.
    */
+  def createPermutaionRecommendation(campaign: domain.Campaign, bpBid: Map[domain.BannerPhrase, Double],
+    dt: DateTime): DateTime = {
+
+    val recommendation = new domain.Recommendation {
+      val id = 0L
+      val dateTime = dt
+      val bannerPhraseBid = bpBid
+    }
+    // save it to DB
+    this.create(recommendation)
+    // create RecommendationChangeDate
+    RecommendationChangeDate(campaign_id = campaign.id, date = dt).put
+    // return dateTime
+    dt
+  }
+
+  /** old function with permutations and curves */
   def createPermutaionRecommendation(permutation: domain.Permutation, campaign: domain.Campaign,
     curve: domain.Curve): DateTime = {
     val permDateTime = permutation.dateTime

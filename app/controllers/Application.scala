@@ -77,8 +77,26 @@ object Application extends Controller with Secured {
    */
   import scala.concurrent.Future
 
-  /* Position Prices */
-  def ppChart(u: String, n: String, cID: String, bpID: String) = Action {
+  /* */
+  def charts = Action { implicit request =>
+    common.Helpers.cform.bindFromRequest.fold(
+      formWithErrors => BadRequest(views.html.charts(formWithErrors)),
+      form => {
+        val f =
+          if (form._1.map(_ == "--- Choose a User ---").getOrElse(true))
+            common.Helpers.cform
+          else if (form._2.map(_ == "--- Choose a Campaign ---").getOrElse(true))
+            common.Helpers.cform.fill(form._1, None, None)
+          else if (form._3.map(_ == "--- Choose a BannerPhrase ---").getOrElse(true))
+            common.Helpers.cform.fill(form._1, form._2, None)
+          else
+            common.Helpers.cform.fill(form)
+
+        Ok(views.html.charts(f))
+      })
+  }
+
+  def drawCharts(ctype: String, u: String, n: String, cID: String, bpID: String) = Action {
     Async {
       Future {
         val dao = new SquerylDao()
@@ -92,55 +110,83 @@ object Application extends Controller with Secured {
             c.historyStartDate = sdate
             c.historyEndDate = edate
 
-            val pp = Charts.getPositionPrices(Some(c), bpID.toInt)
-            val jpp = Json.toJson(pp map { e =>
-              Json.arr(
-                JsNumber(e._1),
-                JsNumber(e._2),
-                JsNumber(e._3),
-                JsNumber(e._4),
-                JsNumber(e._5),
-                JsNumber(e._6))
-            })
+            val jsval = ctype match {
 
-            Ok(jpp)
+              case "c_CTR" => { /* Campaign Performance, CTR */
+                val res = Charts.get_c_CTR(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
+              case "c_bpEffectiveness" => { /* BannerPhrases Effectiveness for the campaign */
+                val res = Charts.get_c_bpEffectiveness(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsString(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
+              case "c_bpEffectivenessCTR" => { /* BannerPhrases Effectiveness vs CTR for the campaign */
+                val res = Charts.get_c_bpEffectivenessCTR(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsString(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3))
+                })
+              }
+
+              case "c_bEffectivenessCTR" => { /* Banners Effectiveness vs CTR for the campaign */
+                val res = Charts.get_c_bEffectivenessCTR(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsString(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3))
+                })
+              }
+
+              case "bp_PP" => { /* Position Prices */
+                val res = Charts.get_bp_PP(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4),
+                    JsNumber(e._5),
+                    JsNumber(e._6),
+                    JsNumber(e._7))
+                })
+              }
+
+              case "bp_CTR" => { /* BannerPhrases CTR */
+                val res = Charts.get_bp_CTR(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
+            }
+
+            Ok(jsval) as JSON
           }
         }
       }
     }
   }
-
-  /* BannerPhrases CTR */
-  def bpChart(u: String, n: String, cID: String, bpID: String) = Action {
-    Async {
-      Future {
-        val dao = new SquerylDao()
-        dao.getCampaign(u, n, cID) match {
-          case None => NotFound("CAMPAIGN is NOT FOUND...")
-          case Some(c) => {
-            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
-            val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-            val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-            //we will retrieve all data from db 
-            c.historyStartDate = sdate
-            c.historyEndDate = edate
-
-            val bp = Charts.getBannerPhraseCTR(Some(c), bpID.toInt)
-            val jbp = Json.toJson(bp map { e =>
-              Json.arr(
-                JsNumber(e._1),
-                JsNumber(e._2),
-                JsNumber(e._3),
-                JsNumber(e._4))
-            })
-
-            Ok(jbp)
-          }
-        }
-      }
-    }
-  }
-
 }
 
 
