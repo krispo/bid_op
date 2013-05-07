@@ -39,9 +39,10 @@ object Charts {
   //BannerPhrase CTR evolution in time with cumulative clicks and shows
   def get_bp_CTR(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double)] = {
     oc map { c =>
-      val obp = BannerPhrase.select(c, bpID)
+      val obp = BannerPhrase.selectWithRegion(c, bpID, "0")
 
-      obp map { bp =>
+      obp map { bp => //find bp with identity phrase and banner but region!="0"or""
+
         val bpp = bp.performanceHistory
         val cClicksContext = bpp.map(_.clicks_context).scan(0)(_ + _).tail
         val cClicksSearch = bpp.map(_.clicks_search).scan(0)(_ + _).tail
@@ -65,7 +66,8 @@ object Charts {
   //ActualBids and NetAdvisedBids evolution in time
   def get_bp_PP(oc: Option[Campaign], bpID: Long): List[(Long, Double, Double, Double, Double, Double, Double)] = { //time,min,max,pmin,pmax,bid,actualprice
     oc map { c =>
-      val obp = BannerPhrase.select(c, bpID)
+      val obp = BannerPhrase.selectWithoutRegions(c, bpID, List("", "0")).headOption //bpID!="0" and bp!=""    !!!!!!!OK
+
       obp map { bp =>
         val ab = bp.actualBidHistory
         val nab = bp.netAdvisedBidsHistory
@@ -88,15 +90,15 @@ object Charts {
   //Effectiveness of all bp for the campaign 
   def get_c_bpEffectiveness(oc: Option[Campaign]): List[(String, Double, Double, Double)] = {
     oc map { c => //network_region_id="" - only for bp with XMLreport
-      c.bannerPhrases.filter(_.region.map(_.network_region_id == "0").getOrElse(false)) map { bp =>
+      c.bannerPhrases.filter(_.region.map(_.network_region_id == "").getOrElse(false)) map { bp =>
         val obp = BannerPhrase.select(c, bp.id)
         obp map { bp =>
-          (bp.phrase.map(_.phrase).getOrElse("-1"),
-            ctr(
-              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
-              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum),
-              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum.toDouble,
-              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum)
+          val perf_clicks = bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum
+          val perf_cost = bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum
+          (bp.phrase.map(ph => ph.network_phrase_id + " - " + ph.phrase).getOrElse("-1"),
+            ctr(perf_clicks, perf_cost),
+            perf_clicks.toDouble,
+            perf_cost)
         } getOrElse ("-1", 0d, 0d, 0d)
       } sortWith (_._2 > _._2)
     } getOrElse (Nil)
@@ -108,13 +110,13 @@ object Charts {
       c.bannerPhrases.filter(_.region.map(_.network_region_id == "").getOrElse(false)) map { bp =>
         val obp = BannerPhrase.select(c, bp.id)
         obp map { bp =>
-          (bp.phrase.map(_.phrase).getOrElse("-1"),
-            ctr(
-              bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
-              bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum),
-              ctr(
-                bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum,
-                bp.performanceHistory.map(p => p.impress_search + p.impress_context).sum))
+          val perf_clicks = bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum
+          val perf_cost = bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum
+          val perf_impress = bp.performanceHistory.map(p => p.impress_search + p.impress_search).sum
+
+          (bp.phrase.map(ph => ph.network_phrase_id + " - " + ph.phrase).getOrElse("-1"),
+            ctr(perf_clicks, perf_cost),
+            ctr(perf_clicks, perf_impress))
         } getOrElse ("-1", 0d, 0d)
       } sortWith (_._3 > _._3)
     } getOrElse (Nil)
@@ -122,21 +124,16 @@ object Charts {
 
   //(Effectiveness,CTR) of all b for the campaign 
   def get_c_bEffectivenessCTR(oc: Option[Campaign]): List[(String, Double, Double)] = {
-    oc map { c => //network_region_id="" - only for bp with XMLreport
+    oc map { c =>
       val byB = c.bannerPhrases
-        .filter(_.region.map(_.network_region_id == "").getOrElse(false))
         .map(_.banner.map(_.network_banner_id).getOrElse("-1"))
         .distinct
         .map { bID =>
-          val byBP = c.bannerPhrases
-            .filter(_.banner.map(_.network_banner_id == bID).getOrElse(false))
+          val byBP = BannerPhrase.select(c, bID, "") //network_region_id="" - only for bp with XMLreport
             .map { bp =>
-              BannerPhrase.select(c, bp.id)
-                .map { bp =>
-                  (bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum.toDouble,
-                    bp.performanceHistory.map(p => p.impress_search + p.impress_context).sum.toDouble,
-                    bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum)
-                }.getOrElse(0d, 0d, 0d)
+              (bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum.toDouble,
+                bp.performanceHistory.map(p => p.impress_search + p.impress_context).sum.toDouble,
+                bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum)
             }
           (bID, byBP.map(_._1).sum, byBP.map(_._2).sum, byBP.map(_._3).sum)
         }
