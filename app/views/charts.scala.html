@@ -17,8 +17,7 @@
 		options = options(User.selectAll.map(_.name)), 
 		'_default -> "--- Choose a User ---", 
 		'_label -> "" 
-	)
-		
+	)		
 	
 	@cform.get._1.map {user=>
 		@select(  
@@ -27,25 +26,7 @@
 			'_default -> "--- Choose a Campaign ---", 
 			'_label -> ""
 		)	
-	}.getOrElse()  			
-	
-	
-	@cform.get._2.map {cpID=>	
-  	@select(  
-		field = cform("bpID"),		
-		options = options((new SquerylDao).getCampaign(cform.get._1.get,"Yandex",cpID.split("-")(0).filter(_.isDigit)).map{c=>
-			c.bannerPhrases.filter(_.region.map(r=>r.network_region_id!="0" & r.network_region_id!="").getOrElse(false)).map{ bp=>
-				bp.id.toString+
-				" - b=" + bp.banner.map(_.network_banner_id).getOrElse("-1")+
-				" - ph=" + bp.phrase.map(_.network_phrase_id).getOrElse("-1")+
-				" - r=" + bp.region.map(_.network_region_id).getOrElse("-1")
-			}
-		}.getOrElse(Nil)), 
-		'_default -> "--- Choose a BannerPhrase ---", 
-		'_label -> ""
-		)	
-	}.getOrElse()	
-	
+	}.getOrElse()  	
 </fieldset>
 
 <div class="actions">
@@ -53,7 +34,31 @@
 </div>
 }
 
-<div id="Charts" align="center"></div>
+<div id="cCharts" align="center"></div>
+
+@cform.get._2.map{cIDraw=>
+@defining( (cform.get._1.get, "Yandex", cIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID) =>
+<div id="mainbpCharts" align="center">
+<h3 align="center"> BannerPhrase Charts </h3>
+<select id="selectID" name="selectName" onchange="bpCharts(this.value.split('-')[0].trim())">        
+        <option class="blank" value="">--- Choose a BannerPhrase ---</option>
+        @defining((new SquerylDao).getCampaign(user,net,cID.split("-")(0).filter(_.isDigit)).map{c=>
+			c.bannerPhrases.filter(_.region.map(r=>r.network_region_id!="0" & r.network_region_id!="").getOrElse(false)).map{ bp=>
+				bp.id.toString+
+				" - b=" + bp.banner.map(_.network_banner_id).getOrElse("-1")+
+				" - ph=" + bp.phrase.map(_.network_phrase_id).getOrElse("-1")+
+				" - r=" + bp.region.map(_.network_region_id).getOrElse("-1")
+			}
+		}.getOrElse(Nil)){ bpl =>
+			@bpl.map{bp=>
+            	<option>@bp</option>
+            }
+        }
+  </select>
+</div>
+<div id="bpCharts"></div>
+}
+}.getOrElse()
 
 <style type="text/css">   
 	.chartDiv {  
@@ -75,14 +80,14 @@
 
             div.appendChild(create_chartDiv(id));
             div.appendChild(create_controlDiv(id));
-
+            
             //document.body.appendChild(div);
             return div
         }         
         function create_chartDiv(id) {         
             var div = document.createElement("div");  
             div.id = "chart_"+id;  
-            div.className = "chartDiv";
+            div.className = "chartDiv";            
             return div
         } 
         function create_controlDiv(id) {
@@ -103,19 +108,20 @@
 <!-- Charts for the whole CAMPAIGN ---------------------------------------------------------------------------------------------------------------------------------------------- -->
 @cform.get._2.map{cIDraw=>
 @defining( (cform.get._1.get, "Yandex", cIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID) =>
-
 <script type="text/javascript">
+	$('#cCharts').append('<h3 align="center"> Campaign Charts </h3>');
+
 	var uid1 = 'cpCTR_'+'@cID';
-	$('#Charts').append(create_dashboardDiv(uid1));
+	$('#cCharts').append(create_dashboardDiv(uid1));
 	
 	var uid2 = 'bpAllEff_'+'@cID';
-	$('#Charts').append(create_chartDiv(uid2));
+	$('#cCharts').append(create_chartDiv(uid2));
 	
 	var uid3 = 'bpAll_'+'@cID';		
-	$('#Charts').append(create_chartDiv(uid3));
+	$('#cCharts').append(create_chartDiv(uid3));
 	
 	var uid4 = 'bAll_'+'@cID';
-	$('#Charts').append(create_chartDiv(uid4));		
+	$('#cCharts').append(create_chartDiv(uid4));	
 </script>
 
 <!-- CampaignPerformance CTR ------------------------------------------------------>
@@ -333,33 +339,41 @@ $.ajax({
         
 	} 	
 </script>
+
 }
 }.getOrElse{}
 
-
-
 <!-- ------------------------------------------------------------------------------------------------------------------------------------------------------------------ -->
 <!-- Charts for a specific BannerPhrase ---------------------------------------------------------------------------------------------------------------------------------->
-
-@cform.get._3.map{bpIDraw=>
-@defining( (cform.get._1.get, "Yandex", cform.get._2.get.split("-")(0).filter(_.isDigit), bpIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID, bpID) =>
-
 <script type="text/javascript">
-	var uid5 = 'bpPP_'+'@bpID';
-	$('#Charts').append(create_dashboardDiv(uid5));
+function bpCharts(bpID){
+
+	$('#bpCharts').empty();	
+
+if (bpID!=""){
+@cform.get._2.map{cIDraw=>
+@defining( (cform.get._1.get, "Yandex", cIDraw.split("-")(0).filter(_.isDigit)) ){case (user, net, cID) =>
+
+	var uid5 = 'bpPP_'+bpID;
+	$('#bpCharts').append(create_dashboardDiv(uid5));
 	
-	var uid6 = 'bppCTR_'+'@bpID';
-	$('#Charts').append(create_dashboardDiv(uid6));	
-</script>	
+	var uid6 = 'bppCTR_'+bpID;
+	$('#bpCharts').append(create_dashboardDiv(uid6));		
 
 <!-- Position Prices ------------------------------------------------------>
-<script type="text/javascript"> 
 //for all bannerPhrases without region "" and 0
 	$.ajax({
-		url : '@routes.Application.drawCharts("bp_PP",user,net,cID,bpID)',
-		type : 'GET',
+		url : '/drawCharts', //'/drawCharts?ctype=bp_PP&amp;user=@user&amp;net=@net&amp;cID=@cID&amp;bpID='+bpID, //'@routes.Application.drawCharts("bp_PP",user,net,cID,"908")',		
+		type : 'GET',		
+		data : {
+			ctype:'bp_PP',
+			user:'@user',
+			net:'@net',
+			cID:'@cID',
+			bpID: bpID
+		},
 		success : function(pp) {
- 			google.setOnLoadCallback(drawChart_PP(pp, uid5, '@bpID')); //draw chart	
+ 			google.setOnLoadCallback(drawChart_PP(pp, uid5, bpID)); //draw chart	
 		}//success
 	});	//ajax
 
@@ -429,17 +443,23 @@ function drawChart_PP(pp,uid,bpID) {
 
 	dashboard.bind(control, chart);
 	dashboard.draw(data);    
-}//draw 
-</script>	
+}//draw 	
 
 <!-- BannerPhrasePerformance CTR ------------------------------------------------------>
-<script type="text/javascript">
 //for all bannerPhrases with region 0
 	$.ajax({
-		url : '@routes.Application.drawCharts("bp_CTR",user,net,cID,bpID)',
+		url : '/drawCharts', 		
+		type : 'GET',		
+		data : {
+			ctype:'bp_CTR',
+			user:'@user',
+			net:'@net',
+			cID:'@cID',
+			bpID: bpID
+		},
 		type : 'GET',
 		success : function(bpCTR) {
-			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,uid6,'@bpID'));	
+			google.setOnLoadCallback(drawChart_bpCTR(bpCTR,uid6,bpID));	
 		} //success
 	});//ajax
 	
@@ -504,10 +524,10 @@ function drawChart_bpCTR(bpCTR,uid,bpID) {
 	
 	dashboard.bind(control, chart);
 	dashboard.draw(data);
-} //draw
-
-</script>	
+} //draw	
+}//defining
+}//cform
+}//if 
+}//bpCharts
+</script>
 }
-}.getOrElse()
-
-} 

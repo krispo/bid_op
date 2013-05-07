@@ -95,7 +95,7 @@ object Charts {
         obp map { bp =>
           val perf_clicks = bp.performanceHistory.map(p => p.clicks_search + p.clicks_context).sum
           val perf_cost = bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum
-          (bp.phrase.map(ph => ph.network_phrase_id + " - " + ph.phrase).getOrElse("-1"),
+          (bp.id.toString + bp.phrase.map(ph => " - ID=" + ph.network_phrase_id + " - " + ph.phrase).getOrElse(" -1"),
             ctr(perf_clicks, perf_cost),
             perf_clicks.toDouble,
             perf_cost)
@@ -114,7 +114,7 @@ object Charts {
           val perf_cost = bp.performanceHistory.map(p => p.cost_search + p.cost_context).sum
           val perf_impress = bp.performanceHistory.map(p => p.impress_search + p.impress_search).sum
 
-          (bp.phrase.map(ph => ph.network_phrase_id + " - " + ph.phrase).getOrElse("-1"),
+          (bp.id.toString + bp.phrase.map(ph => " - ID=" + ph.network_phrase_id + " - " + ph.phrase).getOrElse(" -1"),
             ctr(perf_clicks, perf_cost),
             ctr(perf_clicks, perf_impress))
         } getOrElse ("-1", 0d, 0d)
