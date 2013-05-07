@@ -82,18 +82,6 @@ object Application extends Controller with Secured {
     common.Helpers.cform.bindFromRequest.fold(
       formWithErrors => BadRequest(views.html.charts(formWithErrors)),
       form => {
-        /*val oc = if (form._1.isDefined & form._2.isDefined) {
-          (new dao.squerylorm.SquerylDao).getCampaign(form._1.get, "Yandex", form._2.get.split("-")(0).filter(_.isDigit)).map { c =>
-            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
-            val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-            val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-            //we will retrieve all data from db 
-            c.historyStartDate = sdate
-            c.historyEndDate = edate
-            c
-          }
-        } else None*/
-
         val f =
           if (form._1.map(_ == "--- Choose a User ---").getOrElse(true))
             common.Helpers.cform
@@ -109,15 +97,12 @@ object Application extends Controller with Secured {
   }
 
   def drawCharts(ctype: String, u: String, n: String, cID: String, bpID: String) = Action {
-    println("!!!!!!!!!!!!! imilive!")
-    println("ctype=" + ctype + "u=" + u + " n=" + n + " c=" + cID)
     Async {
       Future {
         val dao = new SquerylDao()
         dao.getCampaign(u, n, cID) match {
           case None => NotFound("CAMPAIGN is NOT FOUND...")
           case Some(c) => {
-            println("URA!" + ctype)
             val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
             val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
             val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
@@ -202,72 +187,6 @@ object Application extends Controller with Secured {
       }
     }
   }
-
-  /* Position Prices */
-  def ppChart(u: String, n: String, cID: String, bpID: String) = Action {
-    Async {
-      Future {
-        val dao = new SquerylDao()
-        dao.getCampaign(u, n, cID) match {
-          case None => NotFound("CAMPAIGN is NOT FOUND...")
-          case Some(c) => {
-            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
-            val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-            val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-            //we will retrieve all data from db 
-            c.historyStartDate = sdate
-            c.historyEndDate = edate
-
-            val pp = Charts.get_bp_PP(Some(c), bpID.toInt)
-            val jpp = Json.toJson(pp map { e =>
-              Json.arr(
-                JsNumber(e._1),
-                JsNumber(e._2),
-                JsNumber(e._3),
-                JsNumber(e._4),
-                JsNumber(e._5),
-                JsNumber(e._6),
-                JsNumber(e._7))
-            })
-
-            Ok(jpp)
-          }
-        }
-      }
-    }
-  }
-
-  /* BannerPhrases CTR */
-  def bpChart(u: String, n: String, cID: String, bpID: String) = Action {
-    Async {
-      Future {
-        val dao = new SquerylDao()
-        dao.getCampaign(u, n, cID) match {
-          case None => NotFound("CAMPAIGN is NOT FOUND...")
-          case Some(c) => {
-            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
-            val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-            val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-            //we will retrieve all data from db 
-            c.historyStartDate = sdate
-            c.historyEndDate = edate
-
-            val bp = Charts.get_bp_CTR(Some(c), bpID.toInt)
-            val jbp = Json.toJson(bp map { e =>
-              Json.arr(
-                JsNumber(e._1),
-                JsNumber(e._2),
-                JsNumber(e._3),
-                JsNumber(e._4))
-            })
-
-            Ok(jbp)
-          }
-        }
-      }
-    }
-  }
-
 }
 
 

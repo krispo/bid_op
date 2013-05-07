@@ -34,7 +34,7 @@
   	@select(  
 		field = cform("bpID"),		
 		options = options((new SquerylDao).getCampaign(cform.get._1.get,"Yandex",cpID.split("-")(0).filter(_.isDigit)).map{c=>
-			c.bannerPhrases.map{ bp=>
+			c.bannerPhrases.filter(_.banner.map(b=>b.network_banner_id!="0" & b.network_banner_id!="").getOrElse(false)).map{ bp=>
 				bp.id.toString+
 				" - b=" + bp.banner.map(_.network_banner_id).getOrElse("-1")+
 				" - ph=" + bp.phrase.map(_.network_phrase_id).getOrElse("-1")+

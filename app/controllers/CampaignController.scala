@@ -369,45 +369,12 @@ object CampaignController extends Controller with Secured {
    * GET /user/:user/net/:net/camp/:id/charts
    */
   def charts(user_name: String, net_name: String, network_campaign_id: String, password: String) =
-    Action { implicit request => //TODO - need to add Authentication!!!
+    Action {
       import scala.concurrent.Future
       import scala.concurrent.ExecutionContext.Implicits.global
-      import java.util.concurrent.TimeUnit
-
-      val futureResult = Future[Result] {
-
-        val dao = new SquerylDao()
-
-        dao.getUser(user_name, password) match {
-          case None => NotFound("User NOT FOUND... Invalid name or password...")
-          case Some(user) => {
-            dao.getCampaign(user_name, net_name, network_campaign_id) match {
-              case None => NotFound("CAMPAIGN is NOT FOUND...")
-              case Some(c) =>
-                val iso_fmt = format.ISODateTimeFormat.dateTime()
-                val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-                val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-                //we will retrieve all data from db 
-                c.historyStartDate = sdate
-                c.historyEndDate = edate
-
-                //generate charts in browser
-                Ok(views.html.charts(common.Helpers.cform)) //(user.name, net_name, common.Helpers.cform))
-            }
-          }
-        }
-      }
-
-      // if service handles request too slow => return Timeout response
-      val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
-        message = "Oops, TIMEOUT while calling BID server...",
-        duration = 3,
-        unit = TimeUnit.MINUTES)
-
       Async {
-        Future.firstCompletedOf(Seq(futureResult, timeoutFuture)).map {
-          case f: Result => f
-          case t: String => InternalServerError(t)
+        Future {
+          Ok(views.html.charts(common.Helpers.cform))
         }
       }
     }
