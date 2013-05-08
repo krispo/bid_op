@@ -103,12 +103,9 @@ object Application extends Controller with Secured {
         dao.getCampaign(u, n, cID) match {
           case None => NotFound("CAMPAIGN is NOT FOUND...")
           case Some(c) => {
-            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
-            val sdate = iso_fmt.parseDateTime("1000-01-01T12:00:00.000+04:00")
-            val edate = iso_fmt.parseDateTime("3000-01-01T12:00:00.000+04:00")
-            //we will retrieve all data from db 
-            c.historyStartDate = sdate
-            c.historyEndDate = edate
+            //we will retrieve all data from db for the campaign c
+            c.historyStartDate = c.startDate
+            c.historyEndDate = org.joda.time.DateTime.now()
 
             val jsval = ctype match {
 
@@ -170,6 +167,27 @@ object Application extends Controller with Secured {
 
               case "bp_CTR" => { /* BannerPhrases CTR */
                 val res = Charts.get_bp_CTR(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
+              case "bp_Scatter" => { /* ScatterPlot Clicks/Shows to Price */
+                val res = Charts.get_bp_Scatter(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3))
+                })
+              }
+
+              case "bp_LinePlot" => { /* LinePlot Clicks vs Shows vs Price */
+                val res = Charts.get_bp_LinePlot(Some(c), bpID.toInt)
                 Json.toJson(res map { e =>
                   Json.arr(
                     JsNumber(e._1),
