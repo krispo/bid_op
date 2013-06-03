@@ -3,8 +3,7 @@ package domain.po
 import scala.reflect._
 import org.joda.time._
 import scala.collection.JavaConversions._
-import java.util.{Map => JMap, List => JList}
-
+import java.util.{ Map => JMap, List => JList }
 
 @BeanInfo
 class Campaign(
@@ -13,6 +12,7 @@ class Campaign(
   val startDate: DateTime = new DateTime,
   val endDate: Option[DateTime] = Some(new DateTime),
   val budget: Option[Double] = Some(0.0),
+  val strategy: String = "",
 
   val user: Option[domain.User] = None,
   val network: Option[domain.Network] = None,
@@ -30,22 +30,20 @@ class Campaign(
   val permutationHistory: List[domain.Permutation] = Nil,
 
   val budgetHistory: List[domain.BudgetHistoryElem] = Nil,
-  val endDateHistory: List[domain.EndDateHistoryElem] = Nil
+  val endDateHistory: List[domain.EndDateHistoryElem] = Nil) extends domain.Campaign {
 
-) extends domain.Campaign
-{
-
-  /** Constructor from domain.Campaign
-  */
+  /**
+   * Constructor from domain.Campaign
+   */
   def this(c: domain.Campaign) = this(
     id = c.id,
     network_campaign_id = c.network_campaign_id,
     startDate = c.startDate,
     endDate = c.endDate,
     budget = c.budget,
- 
+
     user = c.user,
-    network = c.network, 
+    network = c.network,
     login = c.login,
     token = c.token,
 
@@ -59,14 +57,13 @@ class Campaign(
     permutationHistory = c.permutationHistory,
 
     budgetHistory = c.budgetHistory,
-    endDateHistory = c.endDateHistory
-  )
+    endDateHistory = c.endDateHistory)
 }
 object Campaign {
 
-
-  /** Constructor from some attributes[JList]
-  */
+  /**
+   * Constructor from some attributes[JList]
+   */
   def apply(
     id: Long,
     network_campaign_id: String,
@@ -89,33 +86,29 @@ object Campaign {
     permutationHistory: JList[domain.Permutation],
 
     budgetHistory: JList[domain.BudgetHistoryElem],
-    endDateHistory: JList[domain.EndDateHistoryElem]
-  ):Campaign = Campaign(
-      id = id,
-      network_campaign_id = network_campaign_id,
-      startDate = startDate,
-      endDate = endDate,
-      budget = budget,
+    endDateHistory: JList[domain.EndDateHistoryElem]): Campaign = Campaign(
+    id = id,
+    network_campaign_id = network_campaign_id,
+    startDate = startDate,
+    endDate = endDate,
+    budget = budget,
 
-      user = user,
-      network = network,
-      login = login,
-      token = token,
+    user = user,
+    network = network,
+    login = login,
+    token = token,
 
-      bannerPhrases = bannerPhrases.toList,
+    bannerPhrases = bannerPhrases.toList,
 
-      historyStartDate = historyStartDate,
-      historyEndDate = historyEndDate,
+    historyStartDate = historyStartDate,
+    historyEndDate = historyEndDate,
 
-      curves = curves.toList,
-      performanceHistory = performanceHistory.toList,
-      permutationHistory = permutationHistory.toList,
+    curves = curves.toList,
+    performanceHistory = performanceHistory.toList,
+    permutationHistory = permutationHistory.toList,
 
-      budgetHistory = budgetHistory.toList,
-      endDateHistory = endDateHistory.toList
-    )
-
-
+    budgetHistory = budgetHistory.toList,
+    endDateHistory = endDateHistory.toList)
 
 }
 

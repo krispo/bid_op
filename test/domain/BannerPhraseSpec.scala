@@ -12,7 +12,7 @@ class BannerPhraseSpec extends Specification with AllExpectations{
     "differ w/ different ids" in {
       val bp1 = po.BannerPhrase(
         id = 1,
-        banner = None, phrase = None, region = None,
+        banner = None, phrase = None,
         actualBidHistory = Nil,
         recommendationHistory = Nil,
         netAdvisedBidsHistory = Nil,
@@ -20,7 +20,7 @@ class BannerPhraseSpec extends Specification with AllExpectations{
       )
       val bp2 = po.BannerPhrase(
         id = 2,
-        banner = None, phrase = None, region = None,
+        banner = None, phrase = None, 
         actualBidHistory = Nil,
         recommendationHistory = Nil,
         netAdvisedBidsHistory = Nil,
@@ -29,7 +29,7 @@ class BannerPhraseSpec extends Specification with AllExpectations{
       val perm = Map(bp1 -> 1, bp2 -> 2)
       val bp3 = po.BannerPhrase(
         id = 1,
-        banner = None, phrase = None, region = None,
+        banner = None, phrase = None,
         actualBidHistory = Nil,
         recommendationHistory = Nil,
         netAdvisedBidsHistory = Nil,

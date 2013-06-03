@@ -44,7 +44,8 @@ class Convert_fromJsonSpec extends Specification with AllExpectations {
         "_login": "krisp0",
         "_token": "123",
         "network_campaign_id": "100",        
-        "daily_budget": 50.0}""".format(date.getMillis(), date.plusDays(1).getMillis())
+        "daily_budget": 50.0,
+        "strategy": "HigestPosition"}""".format(date.getMillis(), date.plusDays(1).getMillis())
 
       val Some(res) = fromJson[Campaign](Json.parse(data))
 
@@ -66,13 +67,15 @@ class Convert_fromJsonSpec extends Specification with AllExpectations {
         "_login": "krisp0",
         "_token": "123",
         "network_campaign_id": "100",        
-        "daily_budget": 50.0},
+        "daily_budget": 50.0,
+        "strategy": "HigestPosition"},
        {"start_date": %d,
         "end_date": %d,
         "_login": "krisp0",
         "_token": "123",
         "network_campaign_id": "100",        
-        "daily_budget": 50.0}
+        "daily_budget": 50.0,
+        "strategy": "HigestPosition"}
        ]""".format(date.getMillis(), date.plusDays(1).getMillis(), date.getMillis(), date.plusDays(1).getMillis())
 
       val Some(res) = fromJson[List[Campaign]](Json.parse(data))
@@ -99,7 +102,9 @@ class Convert_fromJsonSpec extends Specification with AllExpectations {
         "impress_search": 51,        
         "impress_context": 49,
         "clicks_search": 101,        
-        "clicks_context": 99
+        "clicks_context": 99,
+        "visits":0,
+        "denial":0
         }""".format(date.getMillis(), date.plusDays(1).getMillis())
 
       val Some(res) = fromJson[Performance](Json.parse(data))

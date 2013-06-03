@@ -16,7 +16,6 @@ object AppSchema extends Schema {
     s.name is (unique)))
 
   val banners = table[Banner]
-  val regions = table[Region]
 
   val phrases = table[Phrase]
   on(phrases)(ph => declare(ph.phrase is (dbType("varchar(1024)"))))
@@ -43,8 +42,16 @@ object AppSchema extends Schema {
   on(campaignperformance)(c => declare(
     c.date is (dbType("timestamp"))))
 
+  val campaignperformancemetrika = table[CampaignPerformanceMetrika]
+  on(campaignperformancemetrika)(c => declare(
+    c.date is (dbType("timestamp"))))
+
   val bannerphraseperformance = table[BannerPhrasePerformance]
   on(bannerphraseperformance)(c => declare(
+    c.date is (dbType("timestamp"))))
+
+  val bannerphraseperformancemetrika = table[BannerPhrasePerformanceMetrika]
+  on(bannerphraseperformancemetrika)(c => declare(
     c.date is (dbType("timestamp"))))
 
   val permutations = table[Permutation]
@@ -79,6 +86,8 @@ object AppSchema extends Schema {
   val campaignCurves = oneToManyRelation(campaigns, curves).via((c, b) => c.id === b.campaign_id)
   // Campaign -* CampaignPerformance relation
   val campaignPerformance = oneToManyRelation(campaigns, campaignperformance).via((c, b) => c.id === b.campaign_id)
+  // Campaign -* CampaignPerformanceMetrika relation
+  val campaignPerformanceMetrika = oneToManyRelation(campaigns, campaignperformancemetrika).via((c, b) => c.id === b.campaign_id)
   // Campaign -* BudgetHistory relation
   val campaignBudgetHistory = oneToManyRelation(campaigns, budgethistory).via((c, b) => c.id === b.campaign_id)
   // Campaign -* EndDateHistory relation
@@ -92,13 +101,13 @@ object AppSchema extends Schema {
   val bannerBannerPhrases = oneToManyRelation(banners, bannerphrases).via((b, bp) => b.id === bp.banner_id)
   // Phrase -* BannerPhrase relation
   val phraseBannerPhrases = oneToManyRelation(phrases, bannerphrases).via((b, bp) => b.id === bp.phrase_id)
-  // Region -* BannerPhrase relation
-  val regionBannerPhrases = oneToManyRelation(regions, bannerphrases).via((b, bp) => b.id === bp.region_id)
-
+  
   // BannerPhrase -* Position relation
   val bannerPhrasePositions = oneToManyRelation(bannerphrases, positions).via((c, b) => c.id === b.bannerphrase_id)
   // BannerPhrase -* BannerPhrasePerformance relation
   val bannerPhrasePerformance = oneToManyRelation(bannerphrases, bannerphraseperformance).via((c, b) => c.id === b.bannerphrase_id)
+  // BannerPhrase -* BannerPhrasePerformanceMetrika relation
+  val bannerPhrasePerformanceMetrika = oneToManyRelation(bannerphrases, bannerphraseperformancemetrika).via((c, b) => c.id === b.bannerphrase_id)
   // BannerPhrase -* ActualBidHistory relation
   val bannerPhraseActualBidHistory = oneToManyRelation(bannerphrases, actualbidhistory).via((c, b) => c.id === b.bannerphrase_id)
   // BannerPhrase -* RecommendationHistory relation
@@ -112,8 +121,15 @@ object AppSchema extends Schema {
   // PeriodType -* BannerPhrasePerformance relation
   val periodTypeBannerPhrasePerformance = oneToManyRelation(periodtypes, bannerphraseperformance)
     .via((c, b) => c.id === b.periodtype_id)
+  // PeriodType -* BannerPhrasePerformance relation
+  val periodTypeBannerPhrasePerformanceMetrika = oneToManyRelation(periodtypes, bannerphraseperformancemetrika)
+    .via((c, b) => c.id === b.periodtype_id)
+
   // PeriodType -* CampaignPerformance relation
   val periodTypeCampaignPerformance = oneToManyRelation(periodtypes, campaignperformance)
+    .via((c, b) => c.id === b.periodtype_id)
+  // PeriodType -* CampaignPerformanceMetrika relation
+  val periodTypeCampaignPerformanceMetrika = oneToManyRelation(periodtypes, campaignperformancemetrika)
     .via((c, b) => c.id === b.periodtype_id)
 
   override def drop = {

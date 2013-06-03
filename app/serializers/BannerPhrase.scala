@@ -6,8 +6,7 @@ import domain._
 
 case class BannerPhrase(
   val banner: Option[domain.Banner],
-  val phrase: Option[domain.Phrase],
-  val region: Option[domain.Region]) extends domain.BannerPhrase {
+  val phrase: Option[domain.Phrase]) extends domain.BannerPhrase {
   @transient
   val id: Long = 0
   @transient

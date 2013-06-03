@@ -71,6 +71,8 @@ class SquerylDaoSpec extends Specification with AllExpectations {
       impress_context = 1,
       clicks_search = 1,
       clicks_context = 1,
+      visits = 1,
+      denial = 0d,
       periodType = periodType,
       dateTime = date)
 
@@ -146,13 +148,12 @@ class SquerylDaoSpec extends Specification with AllExpectations {
       }
     }
 
-    "create 1 new BannerPhrase, 1 Banner, 1 Phrase, 1 Region and 2 BannerPhrasePerformances in TestDB_0" in {
+    "create 1 new BannerPhrase, 1 Banner, 1 Phrase and 2 BannerPhrasePerformances in TestDB_0" in {
       TestDB_0.creating_and_filling_inMemoryDB() {
         // create bannerPhrase
         val bp = List[domain.BannerPhrase](domain.po.BannerPhrase(
           banner = Some(domain.po.Banner(network_banner_id = "bb00")),
-          phrase = Some(domain.po.Phrase(network_phrase_id = "pp00")),
-          region = Some(domain.po.Region(network_region_id = "rr00"))))
+          phrase = Some(domain.po.Phrase(network_phrase_id = "pp00"))))
         val periodType = new domain.po.PeriodType(id = 1, factor = 1, description = "")
         val date = new DateTime
         // Map [BannerPhrases, Performance]

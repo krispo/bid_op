@@ -6,7 +6,7 @@ import play.api.test._
 import play.api.test.Helpers._
 import org.joda.time
 import java.sql.Timestamp
-import scala.reflect.BeanInfo
+import scala.reflect._
 
 import dao.squerylorm._
 
@@ -22,7 +22,7 @@ object TestDB_0 extends AppHelpers {
     //def get_from_standart_string_DateTime(date: DateTime): String = date.toString(app_formatter)
 
     //Users
-    val users = List(User("Coda","123").put, User("Some","123").put)
+    val users = List(User("Coda", "123").put, User("Some", "123").put)
 
     //Networks
     val networks = List(Network("Yandex").put, Network("Google").put)
@@ -41,15 +41,12 @@ object TestDB_0 extends AppHelpers {
     //Phrases
     val phrases = List(Phrase("1", "Hi").put, Phrase("2", "Bon Jour").put)
 
-    //Regions
-    val regions = List((Region(7, 0, "7", "Russia")).put, (Region(0, 7, "77", "Moscow")).put)
-
     //BannerPhrase
     val bannerPhrases = List(
-      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(0).id, region_id = regions(0).id),
-      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(1).id, region_id = regions(0).id),
-      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(0).id, region_id = regions(1).id),
-      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(1).id, region_id = regions(1).id)).map(_.put)
+      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(0).id),
+      BannerPhrase(campaigns(0).id, banner_id = banners(0).id, phrase_id = phrases(1).id),
+      BannerPhrase(campaigns(0).id, banner_id = banners(1).id, phrase_id = phrases(0).id),
+      BannerPhrase(campaigns(0).id, banner_id = banners(1).id, phrase_id = phrases(1).id)).map(_.put)
 
     //PeriodType
     val periodTypes = List(PeriodType(factor = 1, description = "day").put, PeriodType(factor = 0.5, description = "night").put)
@@ -66,13 +63,13 @@ object TestDB_0 extends AppHelpers {
         periodtype_id = periodTypes(0).id,
         date = date,
         cost_search = 1, cost_context = 1, impress_search = 10, impress_context = 10,
-        clicks_search = 1, clicks_context = 1).put,
+        clicks_search = 1, clicks_context = 1, visits = 0, denial = 0d).put,
       CampaignPerformance(
         campaign_id = campaigns(0).id,
         periodtype_id = periodTypes(0).id,
         date = date.plusMinutes(30),
         cost_search = 1, cost_context = 1, impress_search = 10, impress_context = 10,
-        clicks_search = 1, clicks_context = 1).put)
+        clicks_search = 1, clicks_context = 1, visits = 0, denial = 0d).put)
 
     //Permutations
     val permutations = List(

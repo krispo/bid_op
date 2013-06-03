@@ -11,13 +11,9 @@ case class BannerPhrase(
   val campaign: Option[domain.Campaign] = None,
   val banner: Option[domain.Banner],
   val phrase: Option[domain.Phrase],
-  val region: Option[domain.Region],
   val actualBidHistory: List[ActualBidHistoryElem] = Nil,
   val recommendationHistory: List[RecommendationHistoryElem] = Nil,
   val netAdvisedBidsHistory: List[NetAdvisedBids] = Nil,
-  val performanceHistory: List[Performance] = Nil
-
-) extends domain.BannerPhrase
-{
+  val performanceHistory: List[Performance] = Nil) extends domain.BannerPhrase {
 }
 

@@ -76,7 +76,7 @@ object CampaignController extends Controller with Secured {
                   Created(toJson[serializers.Campaign](serializers.Campaign._apply(domCamp))) as (JSON)
                 } getOrElse BadRequest
               } catch {
-                case e =>
+                case e: Throwable =>
                   println(e) //TODO: change to log
                   BadRequest("exception caught: " + e)
               }
@@ -109,14 +109,14 @@ object CampaignController extends Controller with Secured {
                 val report = (new XmlReport(body_node)).createBannerPhrasePerformanceReport
 
                 //save report in DB
-                dao.createBannerPhrasesPerformanceReport(c, report) match {
+                dao.createBannerPhrasesPerformanceReport(c, report, true) match {
                   case true =>
-                    println("!!!!!!!!!!!!!!! CREATED XmlReport !!!!!!!!!!!!!!")
+                    println("!!! CREATED XmlReport !!! cID=" + c.network_campaign_id)
                     Created("Report has been created")
                   case false => BadRequest("Report has NOT been created. Post it agaign if you sure that Report content is OK")
                 }
               } catch {
-                case e =>
+                case e: Throwable =>
                   //e.printStackTrace
                   println(e) //TODO: change to log
                   BadRequest("Invalid xml. Error caught: " + e)
@@ -149,20 +149,47 @@ object CampaignController extends Controller with Secured {
                 val cur_dt = request.headers.get("current_datetime") map { dt =>
                   format.ISODateTimeFormat.dateTime().parseDateTime(dt)
                 } getOrElse (new DateTime())
+                val periodType = dao.getPeriodType(cur_dt)
 
-                fromJson[serializers.GetBannersStatResponse](jbody) map { bsr =>
-                  val report = serializers.BannersPerformance.createBannerPhrasePerformanceReport(bsr, c, cur_dt)
+                val direct = fromJson[serializers.GetBannersStatResponse](jbody \ "direct")
+                val metrika = fromJson[List[serializers.PerformanceMetrika]](jbody \ "metrika")
+                  .map {
+                    _ match {
+                      case Nil => Nil
+                      case pml => pml
+                    }
+                  }
+                  .getOrElse(Nil)
+
+                metrika match {
+                  case Nil =>
+                    println("!!! EMPTY Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+                  case pml =>
+                    val report = serializers
+                      .BannersPerformanceMetrika
+                      .createBannerPhrasePerformanceMetrikaReport(pml, c, cur_dt)
+
+                    dao.createBannerPhrasesPerformanceMetrikaReport(c, report) match {
+                      case true => println("!!! CREATED Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+                      case false => println("??? Failed... Banners PERFORMANCE - METRIKA ??? cID=" + c.network_campaign_id)
+                    }
+                }
+
+                direct map { bsr =>
+                  val report = serializers.BannersPerformance.createBannerPhrasePerformanceReport(bsr, metrika, c, cur_dt)
 
                   //save report in DB
                   dao.createBannerPhrasesPerformanceReport(c, report) match {
                     case true =>
-                      println("!!!!!!!!!!!!!!! CREATED BannersPERFORMANCE !!!!!!!!!!!!!!")
+                      println("!!! CREATED Banners PERFORMANCE - DIRECT !!! cID=" + c.network_campaign_id)
                       Created("Report has been created")
-                    case false => BadRequest("Report has NOT been created. Post it agaign if you sure that Report content is OK")
+                    case false =>
+                      println("??? Failed... Banners PERFORMANCE - DIRECT ??? cID=" + c.network_campaign_id)
+                      BadRequest("Report has NOT been created. Post it agaign if you sure that Report content is OK")
                   }
                 } getOrElse BadRequest("Report has NOT been serialized. Post it agaign if you sure that Report content is OK")
               } catch {
-                case e =>
+                case e: Throwable =>
                   e.printStackTrace //TODO: change to log
                   BadRequest("exception caught: " + e)
               }
@@ -191,20 +218,50 @@ object CampaignController extends Controller with Secured {
             case None => BadRequest("Invalid json body")
             case Some(jbody) =>
               try {
-                fromJson[serializers.Performance](jbody) map { performance =>
+                //println(">>>>>" + jbody + "<<<<<")
+                val direct = fromJson[serializers.Performance](jbody \ "direct")
+                val metrika = fromJson[List[serializers.PerformanceMetrika]](jbody \ "metrika")
+                  .map {
+                    _ match {
+                      case Nil => Nil
+                      case pml => pml
+                    }
+                  }
+                  .getOrElse(Nil)
+
+                val cur_dt = direct.map(_.dateTime).getOrElse(new DateTime())
+                val periodType = dao.getPeriodType(cur_dt)
+
+                //println(">>>>>" + metrika + "<<<<<")
+                metrika match {
+                  case Nil =>
+                    println("!!! EMPTY Campaign PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+                  case pml =>
+                    /* it needs Dao to find out the PeriodType */
+                    val perfList = pml.head.createPerformanceMetrikaWithGoals(cur_dt, periodType)
+
+                    println("!!! CREATED Campaign PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+                    dao.createCampaignPerformanceMetrikaReport(c, perfList)
+                }
+
+                val perfDirectOpt = direct.map { performance =>
                   /* it needs Dao to find out the PeriodType */
-                  performance.periodType = dao.getPeriodType(performance.dateTime)
+                  performance.periodType = periodType
+                  performance.updateWithMetrikaPerformance(metrika.headOption.map(_.statWithoutGoals))
 
                   // insert Performance
                   // TODO: no PeriodType now. Fix.
-                  val domPerf = dao.createCampaignPerformanceReport(c, performance)
-                  println("CREATED PERFORMANCE!!!!!!!!!!!!!!")
+                  println("!!! CREATED Campaign PERFORMANCE - DIRECT !!! cID=" + c.network_campaign_id)
+                  dao.createCampaignPerformanceReport(c, performance)
+                }
 
+                perfDirectOpt map { perfDirect =>
                   // respond with CREATED header and Performance body
-                  Created(toJson[serializers.Performance](serializers.Performance._apply(domPerf))) as (JSON)
+                  Created(toJson[serializers.Performance](serializers.Performance._apply(perfDirect))) as (JSON)
                 } getOrElse BadRequest
+
               } catch {
-                case e =>
+                case e: Throwable =>
                   e.printStackTrace //TODO: change to log
                   BadRequest("exception caught: " + e)
               }
@@ -285,15 +342,17 @@ object CampaignController extends Controller with Secured {
                   val report = serializers.yandex.BannerReport.getDomainReport(bil)
 
                   // save in DB
-                  val res = dao.createBannerPhraseNetAndActualBidReport(c, report)
-
-                  val q = println("$$$$$$$$$$$$ CREATED BannerReport $$$$$$$$$$$$")
-
-                  // respond with CREATED header and res: Boolean
-                  Created(Json.toJson(res)) as (JSON)
+                  dao.createBannerPhraseNetAndActualBidReport(c, report) match {
+                    case true =>
+                      println("!!! CREATED BannerReport ANA !!! cID=" + c.network_campaign_id)
+                      Created(Json.toJson(true)) as (JSON) // respond with CREATED header and res: Boolean
+                    case false =>
+                      println("??? Failed... BannerReport ANA ??? cID=" + c.network_campaign_id)
+                      Created(Json.toJson(false)) as (JSON)
+                  }
                 } getOrElse BadRequest
               } catch {
-                case e =>
+                case e: Throwable =>
                   println(e) //TODO: change to log
                   //e.printStackTrace
                   BadRequest("exception caught: " + e)

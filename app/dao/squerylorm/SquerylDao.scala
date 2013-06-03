@@ -33,12 +33,27 @@ class SquerylDao extends dao.Dao {
     CampaignPerformance(campaign, performance).put
 
   /**
+   * creates CampaignPerformanceMetrika in DB
+   * TODO: Optimize. It has 2 DB trips now
+   */
+  def createCampaignPerformanceMetrikaReport(campaign: dCam, performanceList: List[domain.PerformanceMetrika]) =
+    CampaignPerformanceMetrika(campaign, performanceList).map(_.put)
+
+  /**
    * creates BannerPhrasePerformance records in DB
    * TODO: Optimize of course
    */
-  def createBannerPhrasesPerformanceReport(campaign: domain.Campaign, report: Map[domain.BannerPhrase, dPerf]) =
+  def createBannerPhrasesPerformanceReport(campaign: domain.Campaign, report: Map[domain.BannerPhrase, dPerf], isXML: Boolean = false) =
     //BannerPhrasePerformance.create(report)
-    Campaign.get_by_id(campaign.id).createBannerPhrasesPerformanceReport(report)
+    Campaign.get_by_id(campaign.id).createBannerPhrasesPerformanceReport(report, isXML)
+
+  /**
+   * creates BannerPhrasePerformanceMetrika records in DB
+   * TODO: Optimize of course
+   */
+  def createBannerPhrasesPerformanceMetrikaReport(campaign: domain.Campaign, report: Map[domain.BannerPhrase, List[domain.PerformanceMetrika]]) =
+    //BannerPhrasePerformance.create(report)
+    Campaign.get_by_id(campaign.id).createBannerPhrasesPerformanceMetrikaReport(report)
 
   /**
    * creates BannerPhrase NetAdvisedBids and ActualBidHistory records in DB

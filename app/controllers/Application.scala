@@ -120,6 +120,17 @@ object Application extends Controller with Secured {
                 })
               }
 
+              case "c_CTR_Loc" => { /* Campaign Performance, CTR */
+                val res = Charts.get_c_CTR_Loc(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
+
               case "c_bpEffectiveness" => { /* BannerPhrases Effectiveness for the campaign */
                 val res = Charts.get_c_bpEffectiveness(Some(c))
                 Json.toJson(res map { e =>
@@ -148,6 +159,29 @@ object Application extends Controller with Secured {
                     JsString(e._1),
                     JsNumber(e._2),
                     JsNumber(e._3))
+                })
+              }
+
+              case "c_ClusterPrice" => { /* LinePlot Clicks vs Shows vs Price */
+                val res = Charts.get_c_ClusterPrice(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4),
+                    JsNumber(e._5))
+                })
+              }
+
+              case "c_Traffic" => {
+                val res = Charts.get_bp_Traffic(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
                 })
               }
 
@@ -197,6 +231,16 @@ object Application extends Controller with Secured {
                 })
               }
 
+              case "bp_Traffic" => { /* Daily Traffic */
+                val res = Charts.get_bp_Traffic(Some(c), bpID.toInt)
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3),
+                    JsNumber(e._4))
+                })
+              }
             }
 
             Ok(jsval) as JSON

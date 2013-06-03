@@ -3,15 +3,16 @@ package domain
 import scala.reflect._
 import org.joda.time._
 import scala.collection.JavaConversions._
-import java.util.{Map => JMap, List => JList}
+import java.util.{ Map => JMap, List => JList }
 
 @BeanInfo
-trait Campaign{
+trait Campaign {
   def id: Long
   def network_campaign_id: String
   def startDate: DateTime
   def endDate: Option[DateTime]
   def budget: Option[Double]
+  def strategy: String
 
   def user: Option[User]
   def network: Option[Network]

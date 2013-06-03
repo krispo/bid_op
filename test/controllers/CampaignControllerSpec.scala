@@ -101,16 +101,27 @@ class CampaignControllerSpec extends Specification with AllExpectations {
         val start_date: DateTime = iso_fmt.parseDateTime("2012-10-19T00:00:00.000+04:00")
         val date: DateTime = iso_fmt.parseDateTime("2012-10-19T10:00:00.000+04:00")
 
-        val data = """
-       {"start_date": %d,
-        "end_date": %d,
-        "sum_search": 2.0,
-        "sum_context": 2.5,
-        "impress_search": 4,        
-        "impress_context": 5,
-        "clicks_search": 1,        
-        "clicks_context": 2
-        }""".format(
+        val data = """{
+        	"direct": {
+          		"start_date": %d,
+        		"end_date": %d,
+        		"sum_search": 2.0,
+        		"sum_context": 2.5,
+        		"impress_search": 4,        
+        		"impress_context": 5,
+        		"clicks_search": 1,        
+        		"clicks_context": 2,
+        		"visits": 0,        
+        		"denial": 0
+        	},
+          	"metrika": {
+          		"withoutGoal": {
+          			"visits": 0,
+          			"denial": 0	
+          		},
+          		"withGoal":[{}]
+          	}
+        	}""".format(
           start_date.getMillis(), // in format "yyyy-MM-dd"
           date.getMillis() // in standart ISO 8601
           )
@@ -197,7 +208,8 @@ class CampaignControllerSpec extends Specification with AllExpectations {
           "network_campaign_id": "y100",
           "daily_budget": 50,
           "_login": "",
-          "_token": ""
+          "_token": "",
+          "strategy": "HigestPosition"
         }""".format(date.getMillis(), date.plusDays(30).getMillis())
         val node = Json.parse(js)
 
@@ -312,10 +324,12 @@ class CampaignControllerSpec extends Specification with AllExpectations {
         created_bp.phrase.get.network_phrase_id must_== ("538205157")
 
         // check 1 Performance is created
+        /* //We use xml report only for sync phrase id's in direct and metrika  
         created_bp.performanceHistory.length must_== (1)
         val performance = created_bp.performanceHistory(0)
         performance.clicks_search must_== (100)
         performance.dateTime must_== (date)
+        */
       }
     }
   }
@@ -397,7 +411,7 @@ class CampaignControllerSpec extends Specification with AllExpectations {
         // get one of the new BannerPhrases
         val bps = c.bannerPhrases filter (_.banner.get.network_banner_id == "11")
         //only BannerPhrase is created
-        bps.length must_== (2)
+        bps.length must_== (1)
 
         val created_bp = bps.head
         // check phrase is created
@@ -500,11 +514,11 @@ class CampaignControllerSpec extends Specification with AllExpectations {
         val js = Json.parse(content)
         (js \\ "PhraseID").length must_== (4)
         (js \\ "CampaignID").head must_== (JsNumber(1))
-        
+
         /*val rec = json_api.Convert.fromJson[List[serializers.PhrasePriceInfo]](Json.parse(content)).get
         rec.length must_== (4)
         rec(0).CampaignID must_== (1)*/
-               
+
         /* Changed!!!
         val rec = Json.parse[serializers.Recommendation](content)
         rec.param.length must_== (4)

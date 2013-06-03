@@ -21,9 +21,19 @@ case class Performance(
 
   val dateTime: DateTime = end_date // DateTime of Performance snap-shot
 
+  var visits: Int = 0
+  var denial: Double = 0d
   //TODO: PeriodType should be changed from dummy one. Make change in Dao
   @transient
   var periodType: domain.PeriodType = (new SquerylDao).getPeriodType(dateTime)
+
+  def updateWithMetrikaPerformance(omp: Option[WithoutGoal]): Performance = {
+    omp.map { mp =>
+      this.visits = mp.visits
+      this.denial = mp.denial
+    }
+    this
+  }
 }
 
 object Performance extends Function8[DateTime, DateTime, Double, Double, Int, Int, Int, Int, Performance] {

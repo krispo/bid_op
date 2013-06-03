@@ -10,7 +10,8 @@ case class Campaign(
   val end_date: DateTime = new DateTime,
   val daily_budget: Double = 0.0,
   val _login: String = "",
-  val _token: String = "") extends domain.Campaign {
+  val _token: String = "",
+  val strategy: String = "") extends domain.Campaign {
   @transient
   var id: Long = 0
   @transient
@@ -51,7 +52,7 @@ case class Campaign(
   @transient
   var endDateHistory: List[domain.EndDateHistoryElem] = Nil
 }
-object Campaign extends Function6[String, DateTime, DateTime, Double, String, String, Campaign] {
+object Campaign extends Function7[String, DateTime, DateTime, Double, String, String, String, Campaign] {
 
   /**
    * Constructor from domain.Campaign
@@ -62,6 +63,7 @@ object Campaign extends Function6[String, DateTime, DateTime, Double, String, St
     end_date = c.endDate.getOrElse(new DateTime(0)),
     daily_budget = c.budget.getOrElse(0.0),
     _login = c.login.getOrElse(""),
-    _token = c.token.getOrElse(""))
+    _token = c.token.getOrElse(""),
+    strategy = c.strategy)
 }
 
