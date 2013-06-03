@@ -18,6 +18,7 @@ trait Campaign {
   def network: Option[Network]
   def login: Option[String]
   def token: Option[String]
+  def clientLogin: Option[String] //client login for agency. 
 
   def bannerPhrases: List[BannerPhrase]
   @transient lazy val bannerPhrasesJList: JList[BannerPhrase] = bannerPhrases

@@ -19,6 +19,7 @@ case class Campaign(
   val start: Timestamp = new Timestamp(1),
   val _login: String = "",
   val _token: String = "",
+  val _clientLogin: String = "",
   val strategy: String = "") extends domain.Campaign with KeyedEntity[Long] {
   val id: Long = 0
   def startDate = start
@@ -73,6 +74,7 @@ case class Campaign(
   def network = None
   def login = Some(_login)
   def token = Some(_token)
+  def clientLogin = Some(_clientLogin)
 
   //get_bannerphrases and assign Campaign (with historyStartDate, historyEndDate)
   lazy val bannerPhrases: List[domain.BannerPhrase] = inTransaction {
@@ -361,6 +363,7 @@ object Campaign {
       start = cc.startDate,
       _login = cc.login.getOrElse(""),
       _token = cc.token.getOrElse(""),
+      _clientLogin = cc.clientLogin.getOrElse(""),
       strategy = cc.strategy).put
     // create BudgetHistory
     val budgetHistory = BudgetHistory(

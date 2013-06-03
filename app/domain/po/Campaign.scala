@@ -18,6 +18,7 @@ class Campaign(
   val network: Option[domain.Network] = None,
   val login: Option[String] = None,
   val token: Option[String] = None,
+  val clientLogin: Option[String] = None,
 
   val bannerPhrases: List[domain.BannerPhrase] = Nil,
 
@@ -41,11 +42,13 @@ class Campaign(
     startDate = c.startDate,
     endDate = c.endDate,
     budget = c.budget,
+    strategy = c.strategy,
 
     user = c.user,
     network = c.network,
     login = c.login,
     token = c.token,
+    clientLogin = c.clientLogin,
 
     bannerPhrases = c.bannerPhrases,
 

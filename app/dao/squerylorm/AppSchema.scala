@@ -16,9 +16,13 @@ object AppSchema extends Schema {
     s.name is (unique)))
 
   val banners = table[Banner]
+  on(banners)(s => declare(
+    s.network_banner_id is (unique)))
 
   val phrases = table[Phrase]
-  on(phrases)(ph => declare(ph.phrase is (dbType("varchar(1024)"))))
+  on(phrases)(s => declare(
+    s.phrase is (dbType("varchar(1024)")),
+    s.network_phrase_id is (unique)))
 
   val bannerphrases = table[BannerPhrase]
   val positions = table[Position]
@@ -101,7 +105,7 @@ object AppSchema extends Schema {
   val bannerBannerPhrases = oneToManyRelation(banners, bannerphrases).via((b, bp) => b.id === bp.banner_id)
   // Phrase -* BannerPhrase relation
   val phraseBannerPhrases = oneToManyRelation(phrases, bannerphrases).via((b, bp) => b.id === bp.phrase_id)
-  
+
   // BannerPhrase -* Position relation
   val bannerPhrasePositions = oneToManyRelation(bannerphrases, positions).via((c, b) => c.id === b.bannerphrase_id)
   // BannerPhrase -* BannerPhrasePerformance relation

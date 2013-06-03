@@ -209,6 +209,7 @@ class CampaignControllerSpec extends Specification with AllExpectations {
           "daily_budget": 50,
           "_login": "",
           "_token": "",
+          "_clientLogin": "",
           "strategy": "HigestPosition"
         }""".format(date.getMillis(), date.plusDays(30).getMillis())
         val node = Json.parse(js)

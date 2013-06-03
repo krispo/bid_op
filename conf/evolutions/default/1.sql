@@ -2,6 +2,7 @@
 
 # --- !Ups
 
+
 CREATE TABLE "ActualBidHistory" (
     id bigint NOT NULL,
     date timestamp without time zone NOT NULL,
@@ -64,6 +65,7 @@ CREATE TABLE "Campaign" (
     network_campaign_id character varying(128) NOT NULL,
     id bigint NOT NULL,
     strategy character varying(128) NOT NULL,
+    "_clientLogin" character varying(128) NOT NULL,
     start timestamp without time zone NOT NULL
 );
 
@@ -346,7 +348,6 @@ ALTER TABLE ONLY "Banner"
 ALTER TABLE ONLY "BudgetHistory"
     ADD CONSTRAINT "BudgetHistory_pkey" PRIMARY KEY (id);
 
-
 ALTER TABLE ONLY "CampaignPerformanceMetrika"
     ADD CONSTRAINT "CampaignPerformanceMetrika_pkey" PRIMARY KEY (id);
 
@@ -386,7 +387,6 @@ ALTER TABLE ONLY "Position"
 ALTER TABLE ONLY "RecommendationChangeDate"
     ADD CONSTRAINT "RecommendationChangeDate_pkey" PRIMARY KEY (id);
 
-
 ALTER TABLE ONLY "RecommendationHistory"
     ADD CONSTRAINT "RecommendationHistory_pkey" PRIMARY KEY (id);
 
@@ -395,6 +395,8 @@ ALTER TABLE ONLY ad_user
 
 CREATE UNIQUE INDEX idx1eb904b2 ON ad_user USING btree (name);
 CREATE UNIQUE INDEX idx1ed504b9 ON "Network" USING btree (name);
+CREATE UNIQUE INDEX idx7557098f ON "Banner" USING btree (network_banner_id);
+CREATE UNIQUE INDEX idx774609a9 ON "Phrase" USING btree (network_phrase_id);
 CREATE UNIQUE INDEX idx9f2b0b23 ON "Campaign" USING btree (network_campaign_id);
 
 ALTER TABLE ONLY "ActualBidHistory"
@@ -464,6 +466,9 @@ ALTER TABLE ONLY "RecommendationHistory"
     ADD CONSTRAINT "RecommendationHistoryFK16" FOREIGN KEY (bannerphrase_id) REFERENCES "BannerPhrase"(id);
 
 
+# --- !Downs
+
+
 ALTER TABLE ONLY "RecommendationHistory" DROP CONSTRAINT "RecommendationHistoryFK16";
 ALTER TABLE ONLY "Position" DROP CONSTRAINT "PositionFK18";
 ALTER TABLE ONLY "Position" DROP CONSTRAINT "PositionFK12";
@@ -486,9 +491,13 @@ ALTER TABLE ONLY "BannerPhrase" DROP CONSTRAINT "BannerPhraseFK8";
 ALTER TABLE ONLY "BannerPhrase" DROP CONSTRAINT "BannerPhraseFK11";
 ALTER TABLE ONLY "BannerPhrase" DROP CONSTRAINT "BannerPhraseFK10";
 ALTER TABLE ONLY "ActualBidHistory" DROP CONSTRAINT "ActualBidHistoryFK15";
+
 DROP INDEX idx9f2b0b23;
+DROP INDEX idx774609a9;
+DROP INDEX idx7557098f;
 DROP INDEX idx1ed504b9;
 DROP INDEX idx1eb904b2;
+
 ALTER TABLE ONLY ad_user DROP CONSTRAINT ad_user_pkey;
 ALTER TABLE ONLY "RecommendationHistory" DROP CONSTRAINT "RecommendationHistory_pkey";
 ALTER TABLE ONLY "RecommendationChangeDate" DROP CONSTRAINT "RecommendationChangeDate_pkey";
@@ -511,9 +520,6 @@ ALTER TABLE ONLY "BannerPhrasePerformance" DROP CONSTRAINT "BannerPhrasePerforma
 ALTER TABLE ONLY "BannerPhrasePerformanceMetrika" DROP CONSTRAINT "BannerPhrasePerformanceMetrika_pkey";
 ALTER TABLE ONLY "ActualBidHistory" DROP CONSTRAINT "ActualBidHistory_pkey";
 
-
-# --- !Downs
-
 DROP SEQUENCE s_ad_user_id;
 DROP SEQUENCE "s_RecommendationHistory_id";
 DROP SEQUENCE "s_RecommendationChangeDate_id";
@@ -535,6 +541,7 @@ DROP SEQUENCE "s_BannerPhrase_id";
 DROP SEQUENCE "s_BannerPhrasePerformance_id";
 DROP SEQUENCE "s_BannerPhrasePerformanceMetrika_id";
 DROP SEQUENCE "s_ActualBidHistory_id";
+
 DROP TABLE ad_user;
 DROP TABLE "RecommendationHistory";
 DROP TABLE "RecommendationChangeDate";
