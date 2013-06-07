@@ -38,6 +38,7 @@ object BannerReport {
       bInfo <- data
       phInfo <- (bInfo \ "Phrases").as[List[JsValue]]
     } yield {
+      println("<<<" + phInfo + ">>>")
       (
         serializers.BannerPhrase(
           banner = Some(domain.po.Banner(
