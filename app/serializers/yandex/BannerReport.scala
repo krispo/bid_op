@@ -38,7 +38,6 @@ object BannerReport {
       bInfo <- data
       phInfo <- (bInfo \ "Phrases").as[List[JsValue]]
     } yield {
-      println("<<<" + phInfo + ">>>")
       (
         serializers.BannerPhrase(
           banner = Some(domain.po.Banner(
@@ -49,13 +48,13 @@ object BannerReport {
             phrase = (phInfo \ "Phrase").as[String]))),
           (new ActualBidHistoryElem {
             val dateTime = new DateTime;
-            val elem = (phInfo \ "Price").as[Double]
+            val elem = (phInfo \ "Price").asOpt[Double].getOrElse(0.0)
           },
             po.NetAdvisedBids(
-              a = (phInfo \ "Min").as[Double],
-              b = (phInfo \ "Max").as[Double],
-              c = (phInfo \ "PremiumMin").as[Double],
-              d = (phInfo \ "PremiumMax").as[Double],
+              a = (phInfo \ "Min").asOpt[Double].getOrElse(0.0),
+              b = (phInfo \ "Max").asOpt[Double].getOrElse(0.0),
+              c = (phInfo \ "PremiumMin").asOpt[Double].getOrElse(0.0),
+              d = (phInfo \ "PremiumMax").asOpt[Double].getOrElse(0.0),
               e = (phInfo \ "CurrentOnSearch").asOpt[Double].getOrElse(0.0),
               f = 0,
               dateTime = new DateTime)))
