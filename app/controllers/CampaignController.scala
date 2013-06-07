@@ -338,9 +338,9 @@ object CampaignController extends Controller with Secured {
             case None => BadRequest("Invalid json body")
             case Some(jbody) =>
               try {
-                fromJson[List[serializers.yandex.BannerInfo]](jbody) map { bil =>
-                  val report = serializers.yandex.BannerReport.getDomainReport(bil)
-
+                //fromJson[List[serializers.yandex.BannerInfo]](jbody) map { bil =>
+                jbody.asOpt[List[JsValue]] map { bil =>
+                  val report = serializers.yandex.BannerReport.getDomainReportJS(bil)
                   // save in DB
                   dao.createBannerPhraseNetAndActualBidReport(c, report) match {
                     case true =>

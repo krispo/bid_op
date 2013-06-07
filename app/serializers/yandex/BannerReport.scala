@@ -33,6 +33,34 @@ object BannerReport {
     }
     res toMap
   }
+  def getDomainReportJS(data: List[JsValue]): Map[BannerPhrase, (ActualBidHistoryElem, NetAdvisedBids)] = {
+    val res = for {
+      bInfo <- data
+      phInfo <- (bInfo \ "Phrases").as[List[JsValue]]
+    } yield {
+      (
+        serializers.BannerPhrase(
+          banner = Some(domain.po.Banner(
+            network_banner_id = (phInfo \ "BannerID").as[Int].toString,
+            geo = (bInfo \ "Geo").as[String])),
+          phrase = Some(domain.po.Phrase(
+            network_phrase_id = (phInfo \ "PhraseID").as[Int].toString,
+            phrase = (phInfo \ "Phrase").as[String]))),
+          (new ActualBidHistoryElem {
+            val dateTime = new DateTime;
+            val elem = (phInfo \ "Price").as[Double]
+          },
+            po.NetAdvisedBids(
+              a = (phInfo \ "Min").as[Double],
+              b = (phInfo \ "Max").as[Double],
+              c = (phInfo \ "PremiumMin").as[Double],
+              d = (phInfo \ "PremiumMax").as[Double],
+              e = (phInfo \ "CurrentOnSearch").asOpt[Double].getOrElse(0.0),
+              f = 0,
+              dateTime = new DateTime)))
+    }
+    res toMap
+  }
 
 }
 
