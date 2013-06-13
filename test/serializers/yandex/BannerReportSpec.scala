@@ -39,29 +39,4 @@ class BannerReportSpec extends Specification with AllExpectations {
       phrase.CurrentOnSearch must_== (Some(1.0))
     }
   }
-
-  "createRegions(jsonString)" should {
-    sequential
-    "create 2 domain.Regions" in {
-      // get test data
-      val file_name = "test/serializers/yandex/reports/bannerReport1.json"
-      val js = Source.fromFile(file_name, "utf-8").getLines.mkString
-      val bInfoList = fromJson[List[BannerInfo]](Json.parse(js)).get
-      val regions = bInfoList.head.createRegions()
-      regions.length must_== (2)
-      regions(0).network_region_id must_== ("12")
-    }
-
-    "create 1 domain.Region(0) if Geo isEmty" in {
-      // get test data
-      val file_name = "test/serializers/yandex/reports/bannerReport1.json"
-      val js = Source.fromFile(file_name, "utf-8").getLines.mkString
-      val bInfoList = fromJson[List[BannerInfo]](Json.parse(js)).get
-      val regions = bInfoList.head.createRegions("")
-      regions.length must_== (1)
-      regions(0).network_region_id must_== ("0")
-    }
-
-  }
-
 }

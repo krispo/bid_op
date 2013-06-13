@@ -16,7 +16,6 @@ class CampaignSpec extends Specification with AllExpectations{
       id = 0,
       banner = None,
       phrase = None,
-      region = None,
       actualBidHistory = Nil,
       recommendationHistory = Nil,
       netAdvisedBidsHistory = Nil,

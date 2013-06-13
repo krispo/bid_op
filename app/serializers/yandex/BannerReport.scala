@@ -15,14 +15,12 @@ object BannerReport {
   def getDomainReport(data: List[BannerInfo]): Map[BannerPhrase, (ActualBidHistoryElem, NetAdvisedBids)] = {
     val res = for {
       bInfo <- data
-      region <- bInfo.createRegions()
       phInfo <- bInfo.Phrases
     } yield {
       (
         serializers.BannerPhrase(
-          banner = Some(domain.po.Banner(network_banner_id = phInfo.BannerID.toString)),
-          phrase = Some(domain.po.Phrase(network_phrase_id = phInfo.PhraseID.toString, phrase = phInfo.Phrase)),
-          region = Some(region)),
+          banner = Some(domain.po.Banner(network_banner_id = phInfo.BannerID.toString, geo = bInfo.Geo)),
+          phrase = Some(domain.po.Phrase(network_phrase_id = phInfo.PhraseID.toString, phrase = phInfo.Phrase))),
           (new ActualBidHistoryElem { val dateTime = new DateTime; val elem = phInfo.Price },
             po.NetAdvisedBids(
               a = phInfo.Min,
@@ -30,6 +28,34 @@ object BannerReport {
               c = phInfo.PremiumMin,
               d = phInfo.PremiumMax,
               e = phInfo.CurrentOnSearch.getOrElse(0.0),
+              f = 0,
+              dateTime = new DateTime)))
+    }
+    res toMap
+  }
+  def getDomainReportJS(data: List[JsValue]): Map[BannerPhrase, (ActualBidHistoryElem, NetAdvisedBids)] = {
+    val res = for {
+      bInfo <- data
+      phInfo <- (bInfo \ "Phrases").as[List[JsValue]]
+    } yield {
+      (
+        serializers.BannerPhrase(
+          banner = Some(domain.po.Banner(
+            network_banner_id = (phInfo \ "BannerID").as[Int].toString,
+            geo = (bInfo \ "Geo").as[String])),
+          phrase = Some(domain.po.Phrase(
+            network_phrase_id = (phInfo \ "PhraseID").as[Int].toString,
+            phrase = (phInfo \ "Phrase").as[String]))),
+          (new ActualBidHistoryElem {
+            val dateTime = new DateTime;
+            val elem = (phInfo \ "Price").asOpt[Double].getOrElse(0.0)
+          },
+            po.NetAdvisedBids(
+              a = (phInfo \ "Min").asOpt[Double].getOrElse(0.0),
+              b = (phInfo \ "Max").asOpt[Double].getOrElse(0.0),
+              c = (phInfo \ "PremiumMin").asOpt[Double].getOrElse(0.0),
+              d = (phInfo \ "PremiumMax").asOpt[Double].getOrElse(0.0),
+              e = (phInfo \ "CurrentOnSearch").asOpt[Double].getOrElse(0.0),
               f = 0,
               dateTime = new DateTime)))
     }
@@ -53,12 +79,6 @@ case class BannerInfo(
   /**String containing a comma-separated list of IDs for the ad display regions. An ID of 0 or an empty string indicate displays in all regions.*/
   val Geo: String,
   val Phrases: List[BannerPhraseInfo]) {
-  /** create domain.Regions from Geo: String */
-  def createRegions(geo: String = Geo): Seq[Region] =
-    if (geo.trim.isEmpty) List(new po.Region("0"))
-    else
-      geo.split(',') map (x => new po.Region(x.trim.toString))
-
 }
 
 case class BannerPhraseInfo(

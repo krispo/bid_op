@@ -18,6 +18,8 @@ case class BannerPhrasePerformance(
   val impress_context: Int = 0,
   val clicks_search: Int = 0,
   val clicks_context: Int = 0,
+  val visits: Int = 0,
+  val denial: Double = 0d,
   val date: Timestamp = new Timestamp(0)) extends domain.Performance with KeyedEntity[Long] with History {
   val id: Long = 0
 
@@ -46,10 +48,10 @@ object BannerPhrasePerformance {
     AppSchema.bannerphraseperformance.where(a => a.id === id).single
   }
 
-  def apply(t: (dao.squerylorm.BannerPhrase, domain.Performance)): BannerPhrasePerformance = {
+  def apply(t: (dao.squerylorm.BannerPhrase, domain.Performance), isXML: Boolean): BannerPhrasePerformance = {
     t match {
       case (bp, p) =>
-        if (Region.get_by_id(bp.region_id).network_region_id == "0") {
+        if (!isXML) {
           /**
            * for GetBannersStat method
            */
@@ -71,6 +73,8 @@ object BannerPhrasePerformance {
             impress_context = p.impress_context - perf.map(_.impress_context).sum,
             clicks_search = p.clicks_search - perf.map(_.clicks_search).sum,
             clicks_context = p.clicks_context - perf.map(_.clicks_context).sum,
+            visits = p.visits - perf.map(_.visits).sum,
+            denial = p.denial,
             date = p.dateTime)
         } else {
           /**
@@ -85,6 +89,8 @@ object BannerPhrasePerformance {
             impress_context = p.impress_context,
             clicks_search = p.clicks_search,
             clicks_context = p.clicks_context,
+            visits = p.visits,
+            denial = p.denial,
             date = p.dateTime)
         }
     }
