@@ -34,6 +34,12 @@ trait Dao {
   def createCampaignPerformanceReport(campaign: Campaign, performance: Performance): Performance
 
   /**
+   * creates CampaignPerformanceMetrika in DB
+   */
+  //TODO: PeriodType is NOT set in Dao now. Fix.
+  def createCampaignPerformanceMetrikaReport(campaign: Campaign, performanceList: List[PerformanceMetrika]): List[PerformanceMetrika]
+
+  /**
    * creates Performance for java.Campaign in DB
    * def createCampaignPerformanceReport(campaign: asjava.Campaign, performance: Performance):  Performance
    */
@@ -44,13 +50,27 @@ trait Dao {
    * @throw java.util.RunTimeException
    * TODO: add Exception checking in Controllers
    */
-  def createBannerPhrasesPerformanceReport(campaign: Campaign, report: Map[BannerPhrase, Performance]): Boolean
+  def createBannerPhrasesPerformanceReport(campaign: Campaign, report: Map[BannerPhrase, Performance], isXML: Boolean): Boolean
+
+  /**
+   * creates BannerPhrasePerformanceMetrika records in DB
+   * creates new BannerPhrase in case it's not present in DB.
+   * @throw java.util.RunTimeException
+   * TODO: add Exception checking in Controllers
+   */
+  def createBannerPhrasesPerformanceMetrikaReport(campaign: Campaign, report: Map[BannerPhrase, List[PerformanceMetrika]]): Boolean
 
   /**
    * createBannerPhrasesPerformanceReport with java.util.Map[BannerPhrase, Performance]
    */
-  def createBannerPhrasesPerformanceReport(campaign: Campaign, report: JMap[BannerPhrase, Performance]): Boolean =
-    createBannerPhrasesPerformanceReport(campaign, report.toMap)
+  def createBannerPhrasesPerformanceReport(campaign: Campaign, report: JMap[BannerPhrase, Performance], isXML: Boolean): Boolean =
+    createBannerPhrasesPerformanceReport(campaign, report.toMap, isXML)
+
+  /**
+   * createBannerPhrasesPerformanceMetrikaReport with java.util.Map[BannerPhrase, Performance]
+   */
+  def createBannerPhrasesPerformanceMetrikaReport(campaign: Campaign, report: JMap[BannerPhrase, List[PerformanceMetrika]]): Boolean =
+    createBannerPhrasesPerformanceMetrikaReport(campaign, report.toMap)
 
   /**
    * creates BannerPhrase NetAdvisedBids and ActualBidHistory records in DB

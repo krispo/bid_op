@@ -12,8 +12,9 @@ case class Performance(
   val impress_context: Int,
   val clicks_search: Int,
   val clicks_context: Int,
+  val visits: Int,
+  val denial: Double,
   val periodType: domain.PeriodType,
-  val dateTime: DateTime   // DateTime of Performance snap-shot
-
-)extends domain.Performance {}
+  val dateTime: DateTime // DateTime of Performance snap-shot
+  ) extends domain.Performance {}
 

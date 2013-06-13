@@ -12,7 +12,6 @@ class TestDB_1Spec extends Specification with AllExpectations {
   val NumberOfUser = 1
   val NumberOfNetworks = 1
   val NumberOfCampaigns = 1
-  val NumberOfRegions = 1
 
   val NumberOfBanners = 5
   val NumberOfPhrasesInBanner = 10 //
@@ -49,17 +48,16 @@ class TestDB_1Spec extends Specification with AllExpectations {
       }
     }
 
-    "put NumberOfPhrasesInBanner*NumberOfBanners Phrases and NumberOfRegions Region" in {
+    "put NumberOfPhrasesInBanner*NumberOfBanners Phrases" in {
       TestDB_1.creating_and_filling_inMemoryDB() {
         inTransaction {
           import org.squeryl.PrimitiveTypeMode._
-          AppSchema.phrases.toList.length must_== (NumberOfPhrasesInBanner * NumberOfBanners)
-          AppSchema.regions.toList.length must_== (NumberOfRegions)
+          AppSchema.phrases.toList.length must_== (NumberOfPhrasesInBanner * NumberOfBanners)          
         }
       }
     }
 
-    "put NumberOfPhrasesInBanner*NumberOfBanners BannerPhrases belonging to Banner, Phrase and Region" in {
+    "put NumberOfPhrasesInBanner*NumberOfBanners BannerPhrases belonging to Banner and Phrase" in {
       TestDB_1.creating_and_filling_inMemoryDB() {
         inTransaction {
           import org.squeryl.PrimitiveTypeMode._

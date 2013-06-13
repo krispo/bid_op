@@ -20,13 +20,19 @@ class XmlReport(val node: xml.NodeSeq) {
     val startDate: time.DateTime = fmt_date.parseDateTime((node \ "startDate").text)
     val endDate: time.DateTime = fmt_date.parseDateTime((node \ "endDate").text)
 
+    // get phrase names: phraseID -> value
+    val phrases = node \ "phrasesDict" \\ "phrase" map (ph => (ph \ "@phraseID" text, ph \ "@value" text)) toMap
+
     // process rows
     val report = for (row <- (node \\ "row")) yield {
       (
         serializers.BannerPhrase(
-          Some(new domain.po.Banner(network_banner_id = (row \ "@bannerID").text)),
-          Some(new domain.po.Phrase(network_phrase_id = (row \ "@phrase_id").text)),
-          Some(new domain.po.Region((row \ "@regionID").text))),
+          Some(new domain.po.Banner(
+            network_banner_id = (row \ "@bannerID").text)),
+          Some(new domain.po.Phrase(
+            network_phrase_id = (row \ "@phrase_id").text,
+            metrika_phrase_id = (row \ "@phraseID").text,
+            phrase = phrases.get(row \ "@phraseID" text).getOrElse("")))),
           serializers.Performance(
             sum_search = (row \ "@sum_search").text.toDouble,
             sum_context = (row \ "@sum_context").text.toDouble,

@@ -35,7 +35,7 @@ trait Secured extends Controller {
       // if service handles request too slow => return Timeout response
       val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
         message = "Oops, TIMEOUT while calling BID server...",
-        duration = 10,
+        duration = 30,
         unit = TimeUnit.SECONDS)
 
       Async {
@@ -47,25 +47,34 @@ trait Secured extends Controller {
     }
   }
 
-}
-
-/*
- Async { // use Async result to provide concurrent usage of BID service
-        Akka.future { // use Promise to make consuming computations
-          val dao = new SquerylDao
-          request.headers.get("password") match {
-            case None => BadRequest("PASSWORD requestHeader is EMPTY...")
-            case Some(password) =>
-              dao.getUser(user_name, password).headOption match {
-                case None => NotFound("User NOT FOUND... Invalid name or password...")
-                case Some(user) => f(dao, user)(request)
-              }
-          }
-          // if service handles request too slow => return Timeout response  
-        }.orTimeout("Oops, TIMEOUT while calling BID server...", 10, TimeUnit.SECONDS).map(
-          eitherResultOrTimeout => eitherResultOrTimeout.fold(
-            result => result,
-            timeout => RequestTimeout(timeout)))
+  /*
+  import play.api.libs.json.JsValue
+  def IsAuthJSON(user_name: String, f: (SquerylDao, domain.User) => Request[JsValue] => Result) = {
+    Action(parse.json(maxLength = parse.UNLIMITED)) { request =>
+      val futureResult = Future[Result] {
+        val dao = new SquerylDao
+        request.headers.get("password") match {
+          case None => BadRequest("PASSWORD requestHeader is EMPTY...")
+          case Some(password) =>
+            dao.getUser(user_name, password) match {
+              case None => NotFound("User NOT FOUND... Invalid name or password...")
+              case Some(user) => f(dao, user)(request)
+            }
+        }
       }
- * 
- */
+      // if service handles request too slow => return Timeout response
+      val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
+        message = "Oops, TIMEOUT while calling BID server...",
+        duration = 10,
+        unit = TimeUnit.SECONDS)
+
+      Async {
+        Future.firstCompletedOf(Seq(futureResult, timeoutFuture)).map {
+          case f: Result => f
+          case t: String => InternalServerError(t)
+        }
+      }
+    }
+  }
+*/
+}

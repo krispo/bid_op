@@ -18,7 +18,9 @@ case class Campaign(
   val network_campaign_id: String = "", //campaign_id in the Network {Google, Yanddex, etc.) or User's DB
   val start: Timestamp = new Timestamp(1),
   val _login: String = "",
-  val _token: String = "") extends domain.Campaign with KeyedEntity[Long] {
+  val _token: String = "",
+  val _clientLogin: String = "",
+  val strategy: String = "") extends domain.Campaign with KeyedEntity[Long] {
   val id: Long = 0
   def startDate = start
 
@@ -43,6 +45,9 @@ case class Campaign(
 
   // Campaign -* CampaignPerformance relation
   lazy val performancesRel: OneToMany[CampaignPerformance] = AppSchema.campaignPerformance.left(this)
+
+  // Campaign -* CampaignPerformanceMetrika relation
+  lazy val performancesmetrikaRel: OneToMany[CampaignPerformanceMetrika] = AppSchema.campaignPerformanceMetrika.left(this)
 
   // Campaign -* BudgetHistory relation
   lazy val budgetHistoryRel: OneToMany[BudgetHistory] = AppSchema.campaignBudgetHistory.left(this)
@@ -69,6 +74,7 @@ case class Campaign(
   def network = None
   def login = Some(_login)
   def token = Some(_token)
+  def clientLogin = Some(_clientLogin)
 
   //get_bannerphrases and assign Campaign (with historyStartDate, historyEndDate)
   lazy val bannerPhrases: List[domain.BannerPhrase] = inTransaction {
@@ -78,6 +84,7 @@ case class Campaign(
 
   lazy val curves = getHistory[Curve](curvesRel)
   lazy val performanceHistory = getHistory[CampaignPerformance](performancesRel)
+  lazy val performanceMetrikaHistory = getHistory[CampaignPerformanceMetrika](performancesmetrikaRel)
   lazy val permutationHistory = getHistory[Permutation](permutationsRel)
 
   /**
@@ -200,20 +207,42 @@ case class Campaign(
    * creates new Banners, Phrases, Regions and BannerPhrase if needed
    * @throw java.lang.RuntimeException - if Report is malformed - nothing created
    */
-  def createBannerPhrasesPerformanceReport(report: Map[domain.BannerPhrase, domain.Performance]): Boolean = inTransaction {
+  def createBannerPhrasesPerformanceReport(report: Map[domain.BannerPhrase, domain.Performance], isXML: Boolean = false): Boolean = inTransaction {
     // f saves domain.Histories for BannerPhrase
     def f(performance: domain.Performance)(bp: BannerPhrase) = {
-      val bp_perf = BannerPhrasePerformance((bp, performance)).put
-      require(bp_perf.id != 0)
-      require(bp_perf.bannerphrase_id == bp.id)
+      //we put into DB only detailed statistics during the day
+      //XML report is used to sync phrases IDs in direct and metrika
+      if (!isXML) {
+        val bp_perf = BannerPhrasePerformance((bp, performance), isXML).put
+        require(bp_perf.id != 0)
+        require(bp_perf.bannerphrase_id == bp.id)
+      }
     }
     val bp_history = report map { case (bp, p) => bp -> f(p)_ }
     createBannerPhraseHistory(bp_history)
   }
 
   /**
+   * creates BannerPhrasePerformanceMetrika records
+   * creates new Banners, Phrases and BannerPhrase if needed
+   * @throw java.lang.RuntimeException - if Report is malformed - nothing created
+   */
+  def createBannerPhrasesPerformanceMetrikaReport(report: Map[domain.BannerPhrase, List[domain.PerformanceMetrika]]): Boolean = inTransaction {
+    // f saves domain.Histories for BannerPhrase
+    def f(performanceList: List[domain.PerformanceMetrika])(bp: BannerPhrase) = {
+      val bp_perfList = BannerPhrasePerformanceMetrika((bp, performanceList)).map { bp_perf =>
+        bp_perf.put //put in DB
+        require(bp_perf.id != 0)
+        require(bp_perf.bannerphrase_id == bp.id)
+      }
+    }
+    val bp_history = report map { case (bp, pl) => bp -> f(pl)_ }
+    createBannerPhraseHistory(bp_history)
+  }
+
+  /**
    * creates ActualBidHistory and NetAdvisedBidHistory records
-   * creates new Banners, Phrases, Regions and BannerPhrase if needed
+   * creates new Banners, Phrases and BannerPhrase if needed
    * @throw java.lang.RuntimeException - if Report is malformed - nothing created
    */
   def createActualBidAndNetAdvisedBids(report: Map[domain.BannerPhrase, (domain.ActualBidHistoryElem, domain.NetAdvisedBids)]): Boolean =
@@ -230,15 +259,20 @@ case class Campaign(
 
   /**
    * creates History records as (BannerPhrase)=>
-   * creates new Banners, Phrases, Regions and BannerPhrase if needed
+   * creates new Banners, Phrases and BannerPhrase if needed
    * @throw java.lang.RuntimeException - if Report is malformed - nothing created
+   * syncDirectMetrika - if true -> update Phrase table with metrika_phrase_id
    */
   def createBannerPhraseHistory(report: Map[domain.BannerPhrase, (BannerPhrase) => Unit]): Boolean = inTransaction {
     val res = report map {
       case (bp, f) =>
         // find if BannerPhrase already exists
-        for (b <- bp.banner; p <- bp.phrase; r <- bp.region) yield {
-          BannerPhrase.select(this, b.network_banner_id, p.network_phrase_id, r.network_region_id) match {
+        for (b <- bp.banner; p <- bp.phrase) yield {
+          // check the right Prase name and metrika_id, and banner geo are in DB
+          Phrase(p).tryToUpdate()
+          Banner(b).tryToUpdate()
+
+          BannerPhrase.select(this, b.network_banner_id, p.network_phrase_id) match {
 
             case bannerphrase :: Nil =>
               // put History into DB              
@@ -256,16 +290,12 @@ case class Campaign(
                 // create new Phrase in DB
                 (Phrase(p)).put
               }
-              val region = Region.select(r).headOption.getOrElse {
-                // create new Region in DB
-                (Region(r)).put
-              }
+
               require(phrase.id != 0)
-              require(region.id != 0)
               require(banner.id != 0)
               // create and put BannerPhrase
               val bannerphrase = BannerPhrase(campaign_id = this.id, banner_id = banner.id,
-                phrase_id = phrase.id, region_id = region.id).put
+                phrase_id = phrase.id).put
               //check bp
               require(bannerphrase.id != 0)
               // put History into DB              
@@ -274,8 +304,8 @@ case class Campaign(
             case _ =>
               // what the heck? we can't have more than one BannerPhrase
               throw new RuntimeException("""DB conatains more than one BannerPhrase with
-            identical network_banner_id: %s, network_phrase_id: %s and network_region_id: %s""".
-                format(b.network_banner_id, p.network_phrase_id, r.network_region_id))
+            identical network_banner_id: %s, network_phrase_id: %s""".
+                format(b.network_banner_id, p.network_phrase_id))
           }
         }
     }
@@ -332,7 +362,9 @@ object Campaign {
       network_campaign_id = cc.network_campaign_id,
       start = cc.startDate,
       _login = cc.login.getOrElse(""),
-      _token = cc.token.getOrElse("")).put
+      _token = cc.token.getOrElse(""),
+      _clientLogin = cc.clientLogin.getOrElse(""),
+      strategy = cc.strategy).put
     // create BudgetHistory
     val budgetHistory = BudgetHistory(
       campaign_id = c.id,

@@ -7,22 +7,32 @@ object BannersPerformance {
   // Report date format yyyy-MM-dd
   val fmt_date = format.ISODateTimeFormat.date()
 
-  def createBannerPhrasePerformanceReport(bsr: GetBannersStatResponse, c: dao.squerylorm.Campaign, cur_date: DateTime): Map[domain.BannerPhrase, domain.Performance] = {
+  def createBannerPhrasePerformanceReport(bsr: GetBannersStatResponse, pml: List[PerformanceMetrika], c: dao.squerylorm.Campaign, cur_date: DateTime): Map[domain.BannerPhrase, domain.Performance] = {
     // check dates are present and valid
     // TODO: in case the period (endDate - startDate) > 1 day make an appropriate adjustments - i.e.
     // several Performances
     val startDate: DateTime = fmt_date.parseDateTime(bsr.StartDate)
     val endDate: DateTime = cur_date
-    
+
     // process rows
     val report = for (bsi <- bsr.Stat) yield {
-      val phID = bsi.PhraseID.map(_.toString).getOrElse { //if yandex return null for phraseID
-        dao.squerylorm.Phrase.select(bsi.Phrase).map(_.network_phrase_id).getOrElse("")
+      val bannerID = bsi.BannerID
+      val phraseID = bsi.PhraseID.getOrElse { //if yandex return null for phraseID
+        dao.squerylorm.Phrase.select(bsi.Phrase).map(_.network_phrase_id.toLong).getOrElse(0l)
       }
+      //TODO fix phrase_id
+      val phrase_id = dao.squerylorm.Phrase //phrase ID in Metrika
+        .select1(network_phrase_id = phraseID.toString)
+        .map(_.metrika_phrase_id.toLong)
+        .getOrElse(0l)
+
+      val omp = pml.filter(pm =>
+        pm.bannerID.map(_ == bannerID).getOrElse(false) &
+          pm.phrase_id.map(_ == phrase_id).getOrElse(false)).headOption
+
       (serializers.BannerPhrase(
         Some(new domain.po.Banner(network_banner_id = bsi.BannerID.toString)),
-        Some(new domain.po.Phrase(network_phrase_id = phID)),
-        Some(new domain.po.Region("0"))), //"0" is an indicator of all regions
+        Some(new domain.po.Phrase(network_phrase_id = phraseID.toString))),
         serializers.Performance(
           sum_search = bsi.SumSearch,
           sum_context = bsi.SumContext,
@@ -31,7 +41,7 @@ object BannersPerformance {
           clicks_search = bsi.ClicksSearch,
           clicks_context = bsi.ClicksContext,
           start_date = startDate,
-          end_date = endDate))
+          end_date = endDate).updateWithMetrikaPerformance(omp.map(_.statWithoutGoals)))
     }
     report.toMap
   }

@@ -102,7 +102,7 @@ class Convert_toJsonSpec extends Specification with AllExpectations {
 
       val res = toJson[PhrasePriceInfo](data)
       res \ "PhraseID" must_== (JsNumber(1))
-      res \ "Price" must_== (JsNumber(1.0))      
+      res \ "Price" must_== (JsNumber(1.0))
     }
   }
   /*------------- List[PhrasePriceInfo] ---------------------------------------------------*/
@@ -116,7 +116,7 @@ class Convert_toJsonSpec extends Specification with AllExpectations {
 
       val res = toJson[List[PhrasePriceInfo]](data)
       res \\ "PhraseID" map (_.as[Int]) must_== (List(1, 2))
-      res \\ "Price" must_== (List(JsNumber(1.1), JsNumber(2.2)))      
+      res \\ "Price" must_== (List(JsNumber(1.1), JsNumber(2.2)))
     }
   }
 }

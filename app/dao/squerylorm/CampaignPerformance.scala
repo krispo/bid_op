@@ -18,6 +18,8 @@ case class CampaignPerformance(
   val impress_context: Int = 0,
   val clicks_search: Int = 0,
   val clicks_context: Int = 0,
+  val visits: Int = 0,
+  val denial: Double = 0d,
   val date: Timestamp = new Timestamp(0)) extends domain.Performance with KeyedEntity[Long] with History {
   val id: Long = 0
 
@@ -62,6 +64,8 @@ object CampaignPerformance {
       impress_context = p.impress_context - perf.map(_.impress_context).sum,
       clicks_search = p.clicks_search - perf.map(_.clicks_search).sum,
       clicks_context = p.clicks_context - perf.map(_.clicks_context).sum,
+      visits = p.visits - perf.map(_.visits).sum,
+      denial = p.denial,
       date = p.dateTime)
   }
 }

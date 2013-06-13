@@ -13,8 +13,7 @@ import common._
 case class BannerPhrase(
   val campaign_id: Long = 0, //fk
   val banner_id: Long = 0, //fk
-  val phrase_id: Long = 0, //fk
-  val region_id: Long = 0 //fk
+  val phrase_id: Long = 0 //fk
   ) extends domain.BannerPhrase with KeyedEntity[Long] {
   val id: Long = 0
 
@@ -23,7 +22,6 @@ case class BannerPhrase(
 
   def banner = inTransaction { bannerRel.headOption }
   def phrase = inTransaction { phraseRel.headOption }
-  def region = inTransaction { regionRel.headOption }
 
   // BannerPhrase History in ascending order and in conformance to campaign.historyStartDate, historyEndDate
   def getBannerPhraseHistory[T <: History](qRel: Query[T]): List[T] = campaign match {
@@ -51,6 +49,9 @@ case class BannerPhrase(
   //get History using Campaign.historyStartDate and historyEndDate
   lazy val performanceHistory = getBannerPhraseHistory[BannerPhrasePerformance](bannerPhrasePerformanceRel)
 
+  //get History using Campaign.historyStartDate and historyEndDate
+  lazy val performanceMetrikaHistory = getBannerPhraseHistory[BannerPhrasePerformanceMetrika](bannerPhrasePerformanceMetrikaRel)
+
   // Campaign -* BannerPhrase relation
   lazy val campaignRel: ManyToOne[Campaign] = AppSchema.campaignBannerPhrases.right(this)
 
@@ -60,14 +61,14 @@ case class BannerPhrase(
   // Phrase -* BannerPhrase relation
   lazy val phraseRel: ManyToOne[Phrase] = AppSchema.phraseBannerPhrases.right(this)
 
-  // Region -* BannerPhrase relation
-  lazy val regionRel: ManyToOne[Region] = AppSchema.regionBannerPhrases.right(this)
-
   // BannerPhrase -* Position relation
   lazy val bannerPhrasePositionsRel: OneToMany[Position] = AppSchema.bannerPhrasePositions.left(this)
 
   // BannerPhrase -* BannerPhrasePerformance relation
   lazy val bannerPhrasePerformanceRel: OneToMany[BannerPhrasePerformance] = AppSchema.bannerPhrasePerformance.left(this)
+
+  // BannerPhrase -* BannerPhrasePerformanceMetrika relation
+  lazy val bannerPhrasePerformanceMetrikaRel: OneToMany[BannerPhrasePerformanceMetrika] = AppSchema.bannerPhrasePerformanceMetrika.left(this)
 
   // BannerPhrase -* ActualBidHistory relation
   lazy val bannerPhraseActualBidHistoryRel: OneToMany[ActualBidHistory] = AppSchema.bannerPhraseActualBidHistory.left(this)
@@ -88,22 +89,19 @@ case class BannerPhrase(
 object BannerPhrase {
 
   /**
-   * select BannerPhrase for given Campaign, network_banner_id, network_phrase_id and network_region_id
+   * select BannerPhrase for given Campaign, network_banner_id, network_phrase_id
    * it should be 1 BannerPhrase
    * @param Campaign, String, String, String
    * @return BannerPhrase
    */
-  def select(campaign: Campaign, network_banner_id: String, network_phrase_id: String,
-    network_region_id: String): List[BannerPhrase] = inTransaction {
-    from(AppSchema.bannerphrases, AppSchema.banners, AppSchema.phrases, AppSchema.regions)((bp, b, ph, r) =>
+  def select(campaign: Campaign, network_banner_id: String, network_phrase_id: String): List[BannerPhrase] = inTransaction {
+    from(AppSchema.bannerphrases, AppSchema.banners, AppSchema.phrases)((bp, b, ph) =>
       where(
         bp.campaign_id === campaign.id and
           bp.banner_id === b.id and
           bp.phrase_id === ph.id and
-          bp.region_id === r.id and
           b.network_banner_id === network_banner_id and
-          ph.network_phrase_id === network_phrase_id and
-          r.network_region_id === network_region_id) select (bp)).toList
+          ph.network_phrase_id === network_phrase_id) select (bp)).toList
   }
 
   /**
@@ -115,24 +113,6 @@ object BannerPhrase {
         bp.campaign_id === campaign.id and
           bp.banner_id === b.id and
           b.network_banner_id === network_banner_id) select (bp)).toList
-
-    bpL.map { bp =>
-      bp.campaign = Some(campaign)
-      bp
-    }
-  }
-
-  /**
-   * List of BannerPhrases for given campaign, banner and region
-   */
-  def select(campaign: Campaign, network_banner_id: String, network_region_id: String): List[BannerPhrase] = inTransaction {
-    val bpL = from(AppSchema.bannerphrases, AppSchema.banners, AppSchema.regions)((bp, b, r) =>
-      where(
-        bp.campaign_id === campaign.id and
-          bp.banner_id === b.id and
-          bp.region_id === r.id and
-          b.network_banner_id === network_banner_id and
-          r.network_region_id === network_region_id) select (bp)).toList
 
     bpL.map { bp =>
       bp.campaign = Some(campaign)
@@ -156,60 +136,4 @@ object BannerPhrase {
       Some(bp)
     } getOrElse None
   }
-
-  /**
-   * select List of BannerPhrases for given Campaign, similar to BannerPhrase with ID = bannerphrase_id,
-   * but with different region. exRegion - list of regions to exclude
-   * @param Campaign, Long, List[String]
-   * @return List[BannerPhrase]
-   */
-  def selectWithoutRegions(campaign: Campaign, bannerphrase_id: Long, exRegion: List[String]): List[BannerPhrase] = inTransaction {
-    select(campaign, bannerphrase_id).map { bp =>
-      val bpL = from(AppSchema.bannerphrases)(_bp =>
-        where(
-          _bp.campaign_id === bp.campaign_id and
-            _bp.banner_id === bp.banner_id and
-            _bp.phrase_id === bp.phrase_id) select (_bp)).toList
-
-      val bpl = bpL.filter { _bp =>
-        exRegion.filter(_ == Region.get_by_id(_bp.region_id).network_region_id).isEmpty
-      }.map { bp =>
-        bp.campaign = Some(campaign)
-        bp
-      }
-      if (bpl.isEmpty) List(bp) else bpl
-    } getOrElse (Nil)
-  }
-
-  /**
-   * select BannerPhrases for given Campaign, similar to BannerPhrase with ID = bannerphrase_id,
-   * but with different region. region - network_region_id to want
-   * @param Campaign, Long, String
-   * @return List[BannerPhrase]
-   */
-  def selectWithRegion(campaign: Campaign, bannerphrase_id: Long, network_region_id: String): Option[BannerPhrase] = inTransaction {
-    select(campaign, bannerphrase_id).map { _bp =>
-      val bpOpt = from(AppSchema.bannerphrases, AppSchema.regions)((bp, r) =>
-        where(
-          bp.campaign_id === _bp.campaign_id and
-            bp.banner_id === _bp.banner_id and
-            bp.phrase_id === _bp.phrase_id and
-            bp.region_id === r.id and
-            r.network_region_id === network_region_id) select (bp)).headOption
-
-      bpOpt.map { bp =>
-        bp.campaign = Some(campaign)
-        bp
-      }
-    }.getOrElse(None)
-  }
 }
-
-/**
- * def apply(c: domain.Campaign, b: domain.Banner, p: domain.Phrase, r: domain.Region): BannerPhrase =
-    BannerPhrase(
-      campaign_id = c.id,
-      banner_id = b.id,
-      phrase_id = p.id,
-      region_id = r.id)
-**/

@@ -45,15 +45,14 @@ object TestDB_1 extends AppHelpers {
     //---------------------------------
 
     //Users
-    val users = 0 until NumberOfUser map (i => User("User_" + i.toString,"123").put)
+    val users = 0 until NumberOfUser map (i => User("User_" + i.toString, "123").put)
 
-   
     //Networks
     val networks = 0 until NumberOfNetworks map (i => Network("Network_0").put)
 
     // add Campaigns to User Network
-    val campaigns = List(users(0).networksRel.associate(networks(0), Campaign(0, 0, "Net_0_Id", date,"login_1","token_1")))
- 
+    val campaigns = List(users(0).networksRel.associate(networks(0), Campaign(0, 0, "Net_0_Id", date, "login_1", "token_1")))
+
     //BudgetHistory
     val budgetHistory = List(
       campaigns(0).budgetHistoryRel.associate(BudgetHistory(campaign_id = 0, date = date, budget = 100)),
@@ -70,16 +69,12 @@ object TestDB_1 extends AppHelpers {
     val phrases = for (i <- 0 until NumberOfBanners; j <- 0 until NumberOfPhrasesInBanner)
       yield Phrase(((i * NumberOfPhrasesInBanner) + j).toString, "Phrase_" + i.toString + j.toString()).put
 
-    //Regions
-    val regions = List((Region(7, 0, "7", "Russia")).put)
-
     //BannerPhrase
     val bannerPhrases = for (i <- 0 until NumberOfBanners; j <- 0 until NumberOfPhrasesInBanner)
       yield BannerPhrase(campaigns(0).id,
       banner_id = banners(i).id,
-      phrase_id = phrases((i * NumberOfPhrasesInBanner) + j).id,
-      region_id = regions(0).id).put
-      
+      phrase_id = phrases((i * NumberOfPhrasesInBanner) + j).id).put
+
     //BannerPhrasePerformance 
     def createBannerPhrasePerformance(bp: BannerPhrase, ts: Timestamp): BannerPhrasePerformance = {
       BannerPhrasePerformance(
@@ -135,6 +130,8 @@ object TestDB_1 extends AppHelpers {
         impress_context = 10,
         clicks_search = 1,
         clicks_context = 1,
+        visits = 0,
+        denial = 0d,
         date = ts)
     }
     val campaignPerformances = 0 until NumOfTimestamps map
@@ -161,7 +158,7 @@ object TestDB_1 extends AppHelpers {
       else scala.util.Random.shuffle(ind.take(n)) ::: perm(ind.drop(n), n)
 
     val positions = for (p_j <- permutations) yield {
-      val n = bannerPhrases.length / (rnd.nextInt(5)+1);
+      val n = bannerPhrases.length / (rnd.nextInt(5) + 1);
       perm(bannerPhrases.toList, n).zipWithIndex map {
         case (bP_i, ind) => Position(
           bannerphrase_id = bP_i.id,
