@@ -16,10 +16,12 @@ object Dependencies {
   //TODO
   /**
    * Matrix library and so on --------------------------------------------------------
-   * val breeze_math = "org.scalanlp" %% "breeze-math" % "0.1"
-   * val breeze_learn = "org.scalanlp" %% "breeze-learn" % "0.1"
-   * val breeze_process = "org.scalanlp" %% "breeze-process" % "0.1"
-   * val breeze_viz = "org.scalanlp" %% "breeze-viz" % "0.1"
+   */
+  val breeze_math = "org.scalanlp" %% "breeze-math" % "0.3"
+  val breeze_learn = "org.scalanlp" %% "breeze-learn" % "0.3"
+  val breeze_process = "org.scalanlp" %% "breeze-process" % "0.3"
+  val breeze_viz = "org.scalanlp" %% "breeze-viz" % "0.3"
+  /**
    * ---------------------------------------------------------------------------------
    */
 }
@@ -31,7 +33,7 @@ object Resolvers {
   /**Matrix library and so on --------------------------------------------------------*/
   // other resolvers here
   // if you want to use snapshot builds (currently 0.2-SNAPSHOT), use this.
-  // val breeze = "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
+  val sonatype = "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
 }
 
@@ -43,15 +45,16 @@ object ApplicationBuild extends Build {
   import Dependencies._
   val appDependencies = Seq(
     // Add your project dependencies here,
-    jdbc, anorm, squeryl_orm, postgresDriver, fasterxml, mysqlDriver, scalatest) //, lift_json) //, codahale)
+    jdbc, anorm, squeryl_orm, postgresDriver, fasterxml, mysqlDriver, scalatest,
+    breeze_math, breeze_learn, breeze_process, breeze_viz) //, lift_json) //, codahale)
 
   //TODO
   //breeze_math, breeze_learn, breeze_process, breeze_viz)
 
   val main = play.Project(appName, appVersion, appDependencies).settings( //, mainLang = SCALA
     // Add your own project settings here
-    testOptions in Test := Nil) /*,
-    resolvers += Resolvers.codahale)*/
+    testOptions in Test := Nil,
+    resolvers += Resolvers.sonatype)
 
   //TODO
   //++= Seq(Resolvers.codahale,Resolvers.breeze))

@@ -202,9 +202,13 @@ class SquerylDao extends dao.Dao {
         val networks = List("Yandex", "Google", "Begun")
         val fillNets = networks map (Network(_).put)
         val fillPeriodTypes = PeriodType(new DateTime()).put
+
+        println("!!! BID DB is CLEAR !!!")
         true
       } catch {
-        case e => false
+        case e: Throwable =>
+          println("??? Failed... in CLEARing BID DB ???")
+          false
       }
     }
   }
