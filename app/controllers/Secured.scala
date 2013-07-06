@@ -47,7 +47,6 @@ trait Secured extends Controller {
     }
   }
 
-  /*
   import play.api.libs.json.JsValue
   def IsAuthJSON(user_name: String, f: (SquerylDao, domain.User) => Request[JsValue] => Result) = {
     Action(parse.json(maxLength = parse.UNLIMITED)) { request =>
@@ -65,7 +64,7 @@ trait Secured extends Controller {
       // if service handles request too slow => return Timeout response
       val timeoutFuture = play.api.libs.concurrent.Promise.timeout(
         message = "Oops, TIMEOUT while calling BID server...",
-        duration = 10,
+        duration = 30,
         unit = TimeUnit.SECONDS)
 
       Async {
@@ -76,5 +75,5 @@ trait Secured extends Controller {
       }
     }
   }
-*/
+
 }

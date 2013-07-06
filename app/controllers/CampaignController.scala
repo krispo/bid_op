@@ -134,7 +134,7 @@ object CampaignController extends Controller with Secured {
    * @through Exception if request json body has no valid representation of TimeSlot
    * POST /user/:user/net/:net/camp/:id/bannersstats
    */
-  def createBannersPerformance(user_name: String, net_name: String, network_campaign_id: String) = IsAuth(
+  def createBannersPerformance(user_name: String, net_name: String, network_campaign_id: String) = IsAuthJSON(
     user_name,
     (dao, user) => request => {
       //select Campaign
@@ -142,59 +142,60 @@ object CampaignController extends Controller with Secured {
         case None => NotFound("""Can't find Campaign for given User: %s, Network: %s,
           network_campaign_id: %s""".format(user_name, net_name, network_campaign_id))
         case Some(c) =>
-          request.body.asJson match {
+          val jbody = request.body
+          /*request.body.asJson match {
             case None => BadRequest("Invalid json body")
-            case Some(jbody) =>
-              try {
-                val cur_dt = request.headers.get("current_datetime") map { dt =>
-                  format.ISODateTimeFormat.dateTime().parseDateTime(dt)
-                } getOrElse (new DateTime())
-                val periodType = dao.getPeriodType(cur_dt)
+            case Some(jbody) =>*/
+          try {
+            val cur_dt = request.headers.get("current_datetime") map { dt =>
+              format.ISODateTimeFormat.dateTime().parseDateTime(dt)
+            } getOrElse (new DateTime())
+            val periodType = dao.getPeriodType(cur_dt)
 
-                val direct = fromJson[serializers.GetBannersStatResponse](jbody \ "direct")
-                val metrika = fromJson[List[serializers.PerformanceMetrika]](jbody \ "metrika")
-                  .map {
-                    _ match {
-                      case Nil => Nil
-                      case pml => pml
-                    }
-                  }
-                  .getOrElse(Nil)
-
-                metrika match {
-                  case Nil =>
-                    println("!!! EMPTY Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
-                  case pml =>
-                    val report = serializers
-                      .BannersPerformanceMetrika
-                      .createBannerPhrasePerformanceMetrikaReport(pml, c, cur_dt)
-
-                    dao.createBannerPhrasesPerformanceMetrikaReport(c, report) match {
-                      case true => println("!!! CREATED Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
-                      case false => println("??? Failed... Banners PERFORMANCE - METRIKA ??? cID=" + c.network_campaign_id)
-                    }
+            val direct = fromJson[serializers.GetBannersStatResponse](jbody \ "direct")
+            val metrika = fromJson[List[serializers.PerformanceMetrika]](jbody \ "metrika")
+              .map {
+                _ match {
+                  case Nil => Nil
+                  case pml => pml
                 }
-
-                direct map { bsr =>
-                  val report = serializers.BannersPerformance.createBannerPhrasePerformanceReport(bsr, metrika, c, cur_dt)
-
-                  //save report in DB
-                  dao.createBannerPhrasesPerformanceReport(c, report) match {
-                    case true =>
-                      println("!!! CREATED Banners PERFORMANCE - DIRECT !!! cID=" + c.network_campaign_id)
-                      Created("Report has been created")
-                    case false =>
-                      println("??? Failed... Banners PERFORMANCE - DIRECT ??? cID=" + c.network_campaign_id)
-                      BadRequest("Report has NOT been created. Post it agaign if you sure that Report content is OK")
-                  }
-                } getOrElse BadRequest("Report has NOT been serialized. Post it agaign if you sure that Report content is OK")
-              } catch {
-                case e: Throwable =>
-                  e.printStackTrace //TODO: change to log
-                  BadRequest("exception caught: " + e)
               }
+              .getOrElse(Nil)
+
+            metrika match {
+              case Nil =>
+                println("!!! EMPTY Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+              case pml =>
+                val report = serializers
+                  .BannersPerformanceMetrika
+                  .createBannerPhrasePerformanceMetrikaReport(pml, c, cur_dt)
+
+                dao.createBannerPhrasesPerformanceMetrikaReport(c, report) match {
+                  case true => println("!!! CREATED Banners PERFORMANCE - METRIKA !!! cID=" + c.network_campaign_id)
+                  case false => println("??? Failed... Banners PERFORMANCE - METRIKA ??? cID=" + c.network_campaign_id)
+                }
+            }
+
+            direct map { bsr =>
+              val report = serializers.BannersPerformance.createBannerPhrasePerformanceReport(bsr, metrika, c, cur_dt)
+
+              //save report in DB
+              dao.createBannerPhrasesPerformanceReport(c, report) match {
+                case true =>
+                  println("!!! CREATED Banners PERFORMANCE - DIRECT !!! cID=" + c.network_campaign_id)
+                  Created("Report has been created")
+                case false =>
+                  println("??? Failed... Banners PERFORMANCE - DIRECT ??? cID=" + c.network_campaign_id)
+                  BadRequest("Report has NOT been created. Post it agaign if you sure that Report content is OK")
+              }
+            } getOrElse BadRequest("Report has NOT been serialized. Post it agaign if you sure that Report content is OK")
+          } catch {
+            case e: Throwable =>
+              e.printStackTrace //TODO: change to log
+              BadRequest("exception caught: " + e)
           }
       }
+      //}
     })
 
   /**
@@ -326,7 +327,7 @@ object CampaignController extends Controller with Secured {
    * @through Exception if request json body has no valid representation of TimeSlot
    * POST /user/:user/net/:net/camp/:id/bannerreports
    */
-  def createBannerReport(user_name: String, net_name: String, network_campaign_id: String) = IsAuth(
+  def createBannerReport(user_name: String, net_name: String, network_campaign_id: String) = IsAuthJSON(
     user_name,
     (dao, user) => request => {
       //select Campaign
@@ -334,31 +335,34 @@ object CampaignController extends Controller with Secured {
         case None => NotFound("""Can't find Campaign for given User: %s, Network: %s,
           network_campaign_id: %s""".format(user_name, net_name, network_campaign_id))
         case Some(c) =>
-          request.body.asJson match {
-            case None => BadRequest("Invalid json body")
-            case Some(jbody) =>
-              try {
-                //fromJson[List[serializers.yandex.BannerInfo]](jbody) map { bil =>
-                jbody.asOpt[List[JsValue]] map { bil =>
-                  val report = serializers.yandex.BannerReport.getDomainReportJS(bil)
-                  // save in DB
-                  dao.createBannerPhraseNetAndActualBidReport(c, report) match {
-                    case true =>
-                      println("!!! CREATED BannerReport ANA !!! cID=" + c.network_campaign_id)
-                      Created(Json.toJson(true)) as (JSON) // respond with CREATED header and res: Boolean
-                    case false =>
-                      println("??? Failed... BannerReport ANA ??? cID=" + c.network_campaign_id)
-                      Created(Json.toJson(false)) as (JSON)
-                  }
-                } getOrElse BadRequest
-              } catch {
-                case e: Throwable =>
-                  println(e) //TODO: change to log
-                  //e.printStackTrace
-                  BadRequest("exception caught: " + e)
+          val jbody = request.body
+          //          request.body.asJson match {
+          //            case None =>
+          //              println("??? Failed... ANA - Invalid json body")
+          //              BadRequest("Invalid json body")
+          //            case Some(jbody) =>
+          try {
+            //fromJson[List[serializers.yandex.BannerInfo]](jbody) map { bil =>
+            jbody.asOpt[List[JsValue]] map { bil =>
+              val report = serializers.yandex.BannerReport.getDomainReportJS(bil)
+              // save in DB
+              dao.createBannerPhraseNetAndActualBidReport(c, report) match {
+                case true =>
+                  println("!!! CREATED BannerReport ANA !!! cID=" + c.network_campaign_id)
+                  Created(Json.toJson(true)) as (JSON) // respond with CREATED header and res: Boolean
+                case false =>
+                  println("??? Failed... BannerReport ANA ??? cID=" + c.network_campaign_id)
+                  Created(Json.toJson(false)) as (JSON)
               }
+            } getOrElse BadRequest
+          } catch {
+            case e: Throwable =>
+              println(e) //TODO: change to log
+              //e.printStackTrace
+              BadRequest("exception caught: " + e)
           }
       }
+      //}
     })
 
   /**
