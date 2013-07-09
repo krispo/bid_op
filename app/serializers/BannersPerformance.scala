@@ -20,15 +20,24 @@ object BannersPerformance {
       val phraseID = bsi.PhraseID.getOrElse { //if yandex return null for phraseID
         dao.squerylorm.Phrase.select(bsi.Phrase).map(_.network_phrase_id.toLong).getOrElse(0l)
       }
-      //TODO fix phrase_id
-      val phrase_id = dao.squerylorm.Phrase //phrase ID in Metrika
-        .select1(network_phrase_id = phraseID.toString)
-        .map(_.metrika_phrase_id.toLong)
-        .getOrElse(0l)
 
-      val omp = pml.filter(pm =>
-        pm.bannerID.map(_ == bannerID).getOrElse(false) &
-          pm.phrase_id.map(_ == phrase_id).getOrElse(false)).headOption
+      val omp = pml match {
+        case Nil => None
+        case _pml => {
+
+          val phrase_id = dao.squerylorm.Phrase //phrase ID in Metrika
+            .select1(network_phrase_id = phraseID.toString)
+            .map(ph => ph.metrika_phrase_id match {
+              case "" => 0l
+              case st => st.toLong
+            })
+            .getOrElse(0l)
+
+          _pml.filter(pm =>
+            pm.bannerID.map(_ == bannerID).getOrElse(false) &
+              pm.phrase_id.map(_ == phrase_id).getOrElse(false)).headOption
+        }
+      }
 
       (serializers.BannerPhrase(
         Some(new domain.po.Banner(network_banner_id = bsi.BannerID.toString)),

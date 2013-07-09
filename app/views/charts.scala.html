@@ -112,10 +112,10 @@
 
 	var uid11 = 'cpCTR_'+'@cID';
 	$('#cCharts').append(create_dashboardDiv(uid11));
-	
+@**	
 	var uid111 = 'cpCTR_Loc'+'@cID';
 	$('#cCharts').append(create_dashboardDiv(uid111));
-	
+**@	
 	var uid12 = 'bpAllEff_'+'@cID';
 	$('#cCharts').append(create_chartDiv(uid12));
 	
@@ -124,12 +124,14 @@
 	
 	var uid14 = 'bAll_'+'@cID';
 	$('#cCharts').append(create_chartDiv(uid14));
-	
+@**	
 	var uid15 = 'cClusterPrice_'+'@cID';
 	$('#cCharts').append(create_dashboardDiv(uid15));
+**@
 </script>
 
 <!-- Effectiveness, Cost ------------------------------------------------------>
+@**
 <script type="text/javascript">
 $.ajax({
 	url : '@routes.Application.drawCharts("c_ClusterPrice", user,net,cID,"-1")',
@@ -180,7 +182,7 @@ $.ajax({
         
 	} 	
 </script>
-
+**@
 
 <!-- CampaignPerformance CTR ------------------------------------------------------>
 <script type="text/javascript">
@@ -260,16 +262,17 @@ $.ajax({
 </script>
 
 <!-- CampaignPerformance CTR Local ------------------------------------------------------>
+@**
 <script type="text/javascript">
 $.ajax({
 	url : '@routes.Application.drawCharts("c_CTR_Loc", user,net,cID,"-1")',
 	type : 'GET',
 	success : function(res) {		
-		google.setOnLoadCallback(drawChart_cCTR(res,uid111)); //draw chart	
+		google.setOnLoadCallback(drawChart_cCTR_Loc(res,uid111)); //draw chart	
 	}//success
 });	//ajax
 
-	function drawChart_cCTR(res,uid) {
+	function drawChart_cCTR_Loc(res,uid) {
  	
 		var dashboard = new google.visualization.Dashboard(
 			document.getElementById('dashboard_'+uid));
@@ -335,6 +338,7 @@ $.ajax({
 		dashboard.draw(data);
 	} 	
 </script>
+**@
 
 <!-- Effectiveness, Cost ------------------------------------------------------>
 <script type="text/javascript">
