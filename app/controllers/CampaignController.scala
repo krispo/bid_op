@@ -177,8 +177,9 @@ object CampaignController extends Controller with Secured {
             }
 
             direct map { bsr =>
+              println("<<< raw:" + bsr.Stat.length + " >>>")
               val report = serializers.BannersPerformance.createBannerPhrasePerformanceReport(bsr, metrika, c, cur_dt)
-
+              println("<<< " + report.toList.length + " >>>")
               //save report in DB
               dao.createBannerPhrasesPerformanceReport(c, report) match {
                 case true =>
