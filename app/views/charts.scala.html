@@ -862,9 +862,9 @@ function drawChart_bpTraffic(res,uid,bpID) {
 
 	var data = new google.visualization.DataTable();
 	data.addColumn('number', 'Day TimeStamp, 1 stamp = 15 min');
-    data.addColumn('number', 'Clicks');
-    data.addColumn('number', 'Shows');
-    data.addColumn('number', 'Price');
+    data.addColumn('number', 'Avg. Clicks');
+    data.addColumn('number', 'Avg. Shows');
+    data.addColumn('number', 'Avg. Price');
     var ar = [];
     
     for(i in res) {//push data from ajax response to chart
