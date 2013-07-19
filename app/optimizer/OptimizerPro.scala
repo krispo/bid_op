@@ -1,5 +1,5 @@
 package optimizer
 
 class OptimizerPro {
-  
+
 }

@@ -51,3 +51,4 @@ pip-log.txt
 
 .directory
 
+*.dump
