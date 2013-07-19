@@ -201,7 +201,7 @@ object Charts {
   }
 
   /* DailyTraffic */
-  def get_bp_Traffic(oc: Option[Campaign], bpID: Long): List[(Int, Double, Double, Double)] = {
+  def get_bp_Traffic(oc: Option[Campaign], bpID: Long): List[(Double, Double, Double, Double)] = {
     oc map { c =>
       val data = syncDateTime(c, bpID).map {
         case (dt, na, p) =>
@@ -216,7 +216,7 @@ object Charts {
         m <- data.map(_._2).distinct
       } yield {
         val f = data.filter(d => d._1 == h & d._2 == m)
-        (h + m / 60, //h.toString + ":" + m.toString,
+        (h.toDouble + m.toDouble / 60, //h.toString + ":" + m.toString,
           ctr(f.map(_._3).sum, f.length),
           ctr(f.map(_._4).sum, f.length),
           ctr(f.map(_._5).sum, f.length))
@@ -227,7 +227,7 @@ object Charts {
   }
 
   /* DailyTraffic */
-  def get_c_Traffic(oc: Option[Campaign]): List[(Int, Double, Double, Double)] = {
+  def get_c_Traffic(oc: Option[Campaign]): List[(Double, Double, Double, Double)] = {
     oc map { c =>
       val data = c.bannerPhrases
         .flatMap { bp =>
@@ -244,7 +244,7 @@ object Charts {
         m <- data.map(_._2).distinct
       } yield {
         val f = data.filter(d => d._1 == h & d._2 == m)
-        (4 * h + m / 15, //h.toString + ":" + m.toString,
+        (h.toDouble + m.toDouble / 60, //h.toString + ":" + m.toString,
           ctr(f.map(_._3).sum, f.length),
           ctr(f.map(_._4).sum, f.length),
           ctr(f.map(_._5).sum, f.length))
@@ -309,27 +309,29 @@ object Charts {
       0
   }
 
-  def syncDateTime(c: Campaign, bpID: Long): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
+  def syncDateTime(c: Campaign, bpID: Long, oStart: Option[DateTime] = None, oEnd: Option[DateTime] = None): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
     import dao.squerylorm.{ NetAdvisedBidHistory, BannerPhrasePerformance }
 
     BannerPhrase.select(c, bpID) map { bp =>
       val nMinutes = 15
-      val start = c.historyStartDate
-        .minusMillis(c.historyStartDate.getMillisOfDay())
-        .plusMinutes(nMinutes * (c.historyStartDate.getMinuteOfDay() / nMinutes + 1))
+      val dtS = oStart.getOrElse(c.historyStartDate)
+      //val dtE = oEnd.getOrElse(c.historyEndDate)
+      val start = dtS
+        .minusMillis(dtS.getMillisOfDay())
+        .plusMinutes(nMinutes * (dtS.getMinuteOfDay() / nMinutes + 1))
 
       def f(dt: DateTime, naL: List[NetAdvisedBidHistory], pL: List[BannerPhrasePerformance]): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
-        if (naL.isEmpty | pL.isEmpty)
+        if (naL.isEmpty | pL.isEmpty) //| dt.isAfter(dtE))
           Nil
         else {
           //println(naL.length + " - " + pL.length + " : " + naL.head.dateTime + " - " + pL.head.dateTime)
           val ah = naL.head
           val ph = pL.head
 
-          val ahA = ah.dateTime.isAfter(dt) | ah.dateTime.isEqual(dt)
-          val ahB = ah.dateTime.isBefore(dt.plusMinutes(nMinutes))
-          val phA = ph.dateTime.isAfter(dt) | ph.dateTime.isEqual(dt)
-          val phB = ph.dateTime.isBefore(dt.plusMinutes(nMinutes))
+          val ahA = ah.dateTime.isAfter(dt.minusMinutes(3)) | ah.dateTime.isEqual(dt.minusMinutes(3))
+          val ahB = ah.dateTime.isBefore(dt.plusMinutes(nMinutes - 3))
+          val phA = ph.dateTime.isAfter(dt.minusMinutes(3)) | ph.dateTime.isEqual(dt.minusMinutes(3))
+          val phB = ph.dateTime.isBefore(dt.plusMinutes(nMinutes - 3))
 
           (ahA, ahB, phA, phB) match {
             case (true, true, true, true) =>
@@ -392,4 +394,31 @@ object Charts {
     } getOrElse { Nil }
   }
   */
+  /*
+  def f(dt: DateTime, naL: List[NetAdvisedBidHistory], pL: List[BannerPhrasePerformance]): List[(DateTime, NetAdvisedBidHistory, BannerPhrasePerformance)] = {
+        if (naL.isEmpty | pL.isEmpty)
+          Nil
+        else {
+          //println(naL.length + " - " + pL.length + " : " + naL.head.dateTime + " - " + pL.head.dateTime)
+          val ah = naL.head
+          val ph = pL.head
+
+          val ahA = ah.dateTime.isAfter(dt) | ah.dateTime.isEqual(dt)
+          val ahB = ah.dateTime.isBefore(dt.plusMinutes(nMinutes))
+          val phA = ph.dateTime.isAfter(dt) | ph.dateTime.isEqual(dt)
+          val phB = ph.dateTime.isBefore(dt.plusMinutes(nMinutes))
+
+          (ahA, ahB, phA, phB) match {
+            case (true, true, true, true) =>
+              (dt, ah, ph) :: f(dt.plusMinutes(nMinutes), naL.tail, pL.tail)
+
+            case (true, false, true, true) => (dt, NetAdvisedBidHistory(ph.bannerphrase_id, dt), ph) :: f(dt.plusMinutes(nMinutes), naL, pL.tail)
+            case (true, true, true, false) => (dt, ah, BannerPhrasePerformance(ph.bannerphrase_id, date = dt)) :: f(dt.plusMinutes(nMinutes), naL.tail, pL)
+            case (true, false, true, false) => (dt, NetAdvisedBidHistory(ph.bannerphrase_id, dt), BannerPhrasePerformance(bannerphrase_id = ph.bannerphrase_id, date = dt)) :: f(dt.plusMinutes(nMinutes), naL, pL)
+            case (false, _, true, _) => f(dt, naL.tail, pL)
+            case (true, _, false, _) => f(dt, naL, pL.tail)
+            case (false, _, false, _) => f(dt, naL.tail, pL.tail)
+          }
+        }
+      }*/
 }

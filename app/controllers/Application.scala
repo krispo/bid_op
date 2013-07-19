@@ -103,6 +103,8 @@ object Application extends Controller with Secured {
         dao.getCampaign(u, n, cID) match {
           case None => NotFound("CAMPAIGN is NOT FOUND...")
           case Some(c) => {
+            val iso_fmt = org.joda.time.format.ISODateTimeFormat.dateTime()
+            //val dt = iso_fmt.parseDateTime("2013-07-08T15:00:00.000+04:00")
             //we will retrieve all data from db for the campaign c
             c.historyStartDate = c.startDate
             c.historyEndDate = org.joda.time.DateTime.now()
