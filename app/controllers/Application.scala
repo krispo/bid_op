@@ -176,8 +176,18 @@ object Application extends Controller with Secured {
                 })
               }
 
+              case "c_Scatter" => { /* ScatterPlot Clicks/Shows to Price */
+                val res = Charts.get_c_Scatter(Some(c))
+                Json.toJson(res map { e =>
+                  Json.arr(
+                    JsNumber(e._1),
+                    JsNumber(e._2),
+                    JsNumber(e._3))
+                })
+              }
+
               case "c_Traffic" => {
-                val res = Charts.get_bp_Traffic(Some(c), bpID.toInt)
+                val res = Charts.get_c_Traffic(Some(c))
                 Json.toJson(res map { e =>
                   Json.arr(
                     JsNumber(e._1),

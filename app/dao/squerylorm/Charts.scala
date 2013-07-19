@@ -39,7 +39,7 @@ object Charts {
   //Campaign CTR evolution in time with cumulative clicks and shows
   def get_c_CTR_Loc(oc: Option[Campaign]): List[(Long, Double, Double, Double)] = {
     oc map { c =>
-      val n = 400
+      val n = 48
       val cp = c.performanceHistory
       val cClicksContext = cp.map(_.clicks_context).scan(0)(_ + _).tail
       val cClicksSearch = cp.map(_.clicks_search).scan(0)(_ + _).tail
@@ -223,6 +223,20 @@ object Charts {
       }
       res.sortWith(_._1 < _._1)
 
+    } getOrElse (Nil) // Nil
+  }
+
+  /* Scatter plot clicks/impress to price */
+  def get_c_Scatter(oc: Option[Campaign]): List[(Double, Int, Int)] = {
+    oc map { c =>
+      val data = c.bannerPhrases
+        .flatMap { bp =>
+          syncDateTime(c, bp.id)
+        }.map {
+          case (dt, na, p) =>
+            (na.e, p.clicks_search + p.clicks_context, p.impress_search + p.impress_context)
+        }
+      data
     } getOrElse (Nil) // Nil
   }
 
