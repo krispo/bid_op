@@ -9,7 +9,8 @@ import scala.reflect._
 case class Phrase(
   val network_phrase_id: String = "", //fk phrase_id in Network's or client's DB
   val metrika_phrase_id: String = "",
-  val phrase: String = "") extends domain.Phrase with KeyedEntity[Long] {
+  val phrase: String = "",
+  val stats: Option[Long] = None) extends domain.Phrase with KeyedEntity[Long] {
   val id: Long = 0
 
   // Phrase -* BannerPhrase relation
@@ -60,7 +61,8 @@ object Phrase {
     Phrase(
       network_phrase_id = p.network_phrase_id,
       metrika_phrase_id = p.metrika_phrase_id,
-      phrase = p.phrase)
+      phrase = p.phrase,
+      stats = p.stats)
 
   /**
    * select by Campaing and domain.Phrase (basically network_phrase_id)
