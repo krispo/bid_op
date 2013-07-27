@@ -10,13 +10,21 @@ def line(data):
   x = data['x']
   y = data['y']
 
+  #fig = plt.figure()
+
   if y==None: 
     plt.plot(x)
-  else:  
-    plt.plot(x,y,'-')
+  else: 
+    for i in range(0,len(y)): 
+      plt.plot(x,y[i],'-')
 
-  plt.ylabel ('some numbers')
-  plt.show()
+  plt.title(data['title'])
+  plt.xlabel(data['xlabel'])
+  plt.ylabel (data['ylabel'])
+  #plt.ion()     # turns on interactive mode
+  plt.show()    # now this should be non-blocking
+  #plt.show(block=True)
+  #fig.show()
   return
 
 '''
@@ -28,7 +36,15 @@ def scatter(data):
   x = data['x']
   y = data['y']
 
+  #fig = plt.figure()
+
   plt.plot(x,y,'ro')
-  plt.ylabel ('some numbers')
-  plt.show()
+
+  plt.title(data['title'])
+  plt.xlabel(data['xlabel'])
+  plt.ylabel (data['ylabel'])
+  #plt.ion()     # turns on interactive mode
+  plt.show()    # now this should be non-blocking
+  #plt.show(block=False)
+  #fig.show()
   return
