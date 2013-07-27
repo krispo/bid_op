@@ -2,4 +2,4 @@
 python \
 	~/Documents/eclipse/bid_op/app/optimizer/pycharts/wrap.py \
 	line \
-	~/Documents/eclipse/bid_op/app/optimizer/pycharts/jsdata.json
+	~/Documents/eclipse/bid_op/app/optimizer/pycharts/line.json
