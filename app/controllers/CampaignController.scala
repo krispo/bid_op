@@ -7,8 +7,10 @@ import json_api.Convert._
 import play.api.libs.json._
 import domain.{ User, Campaign, Network }
 import dao.squerylorm.{ SquerylDao, Charts }
-import serializers.yandex.XmlReport
+import serializers._
+import serializers.yandex._
 import org.jboss.netty.handler.timeout.IdleStateHandler
+import dao.squerylorm.Phrase
 
 object CampaignController extends Controller with Secured {
 
@@ -384,7 +386,7 @@ object CampaignController extends Controller with Secured {
           val date: DateTime = format.ISODateTimeFormat.dateTime().parseDateTime(date_str)
           println(date)
           //select Campaign
-          val dao = new SquerylDao
+          //val dao = new SquerylDao
           dao.getCampaign(user_name, net_name, network_campaign_id) match {
             case None => {
               println("!!!!Not found campaigns");
@@ -425,6 +427,38 @@ object CampaignController extends Controller with Secured {
 
           }
 
+      }
+    })
+
+  /**
+   * Get Phrases for a given user, network, campaign.
+   * This information needs for getting statistics of impresses over the month
+   */
+  def phrases(user_name: String, net_name: String, network_campaign_id: String) = IsAuth(
+    user_name,
+    (dao, user) => request => {
+      dao.getCampaign(user_name, net_name, network_campaign_id) match {
+        case None => {
+          println("??? Campaign is NOT found...");
+          NotFound("""Can't find Campaign for given User: %s, Network: %s,
+              network_campaign_id: %s""".format(user_name, net_name, network_campaign_id))
+        }
+        case Some(c) => {
+          val phl = c.bannerPhrases.flatMap(_.phrase)
+          val js = Json.toJson(phl.map(_.phrase))
+          Ok(Json.stringify(js))
+        }
+      }
+    })
+
+  def phrasesStats(user_name: String, net_name: String) = IsAuthJSON(
+    user_name,
+    (dao, user) => request => {
+      val jbody = request.body
+      val phStats = PhrasesStats.getStats(jbody)
+      dao.createPhrasesStats(phStats) match {
+        case true => Ok("!!! Wordstat report is POSTED")
+        case false => InternalServerError("??? Failed... Wordstat report is NOT posted...")
       }
     })
 
