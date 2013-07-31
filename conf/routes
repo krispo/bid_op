@@ -3,43 +3,45 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.index
-GET     /clearDB/:user              controllers.Application.clearDB(user:String)
+GET    /                                                controllers.Application.index
+GET    /clearDB/:user                                   controllers.Application.clearDB(user:String)
 
 # The clock Comet stream
-GET     /clock                      controllers.Application.liveClock
-GET 	/charts						controllers.Application.charts
-GET 	/drawCharts					controllers.Application.drawCharts(ctype:String, user:String, net:String, cID:String, bpID:String)
+GET    /clock                                           controllers.Application.liveClock
+GET    /charts                                          controllers.Application.charts
+GET    /drawCharts                                      controllers.Application.drawCharts(ctype:String, user:String, net:String, cID:String, bpID:String)
 
 # UserController
 #
 #GET   /user/:name               	controllers.UserController.user_old(name: String)
-GET    /user/:name                  controllers.UserController.user(name: String)
-POST   /user                		controllers.UserController.createUser
+GET    /user/:name                                      controllers.UserController.user(name: String)
+POST   /user                                            controllers.UserController.createUser
 
 # CampaignController
 #
-GET   /user/:user/net/:net/camp           			 	controllers.CampaignController.campaigns(user: String, net: String)
+GET    /user/:user/net/:net/camp                        controllers.CampaignController.campaigns(user: String, net: String)
 
-GET   /user/:user/net/:net/camp/:id   					controllers.CampaignController.campaign(user: String, net: String, id: String)
+GET    /user/:user/net/:net/camp/:id                    controllers.CampaignController.campaign(user: String, net: String, id: String)
 
-POST   /user/:user/net/:net/camp    					controllers.CampaignController.createCampaign(user: String, net: String)
+POST   /user/:user/net/:net/camp                        controllers.CampaignController.createCampaign(user: String, net: String)
 
-POST   /user/:user/net/:net/camp/:id/stats  			controllers.CampaignController.createCampaignPerformance(user: String, net: String, id: String)
+POST   /user/:user/net/:net/camp/:id/stats              controllers.CampaignController.createCampaignPerformance(user: String, net: String, id: String)
 
-POST   /user/:user/net/:net/camp/:id/bannersstats  		controllers.CampaignController.createBannersPerformance(user: String, net: String, id: String)
+POST   /user/:user/net/:net/camp/:id/bannersstats       controllers.CampaignController.createBannersPerformance(user: String, net: String, id: String)
 
-POST   /user/:user/net/:net/camp/:id/reports  			controllers.CampaignController.createXmlReport(user: String, net: String, id: String)
+POST   /user/:user/net/:net/camp/:id/reports            controllers.CampaignController.createXmlReport(user: String, net: String, id: String)
 
-POST   /user/:user/net/:net/camp/:id/bannerreports  	controllers.CampaignController.createBannerReport(user: String, net: String, id: String)
+POST   /user/:user/net/:net/camp/:id/bannerreports      controllers.CampaignController.createBannerReport(user: String, net: String, id: String)
 
-GET   /user/:user/net/:net/camp/:id/recommendations		controllers.CampaignController.recommendations(user: String, net: String, id: String)
+GET    /user/:user/net/:net/camp/:id/recommendations    controllers.CampaignController.recommendations(user: String, net: String, id: String)
 
-GET   /user/:user/net/:net/camp/:id/charts/:password	controllers.CampaignController.charts(user: String, net: String, id: String, password:String)
+GET    /user/:user/net/:net/camp/:id/charts/:password   controllers.CampaignController.charts(user: String, net: String, id: String, password:String)
 
+GET    /user/:user/net/:net/camp/:id/phrases            controllers.CampaignController.phrases(user: String, net: String, id: String)
+POST   /user/:user/net/:net/phrasesstats                controllers.CampaignController.phrasesStats(user: String, net: String)
 
 # Misc development
-GET     /sample/:id/camp/:c   controllers.Application.sample(id: String, c: String)
+GET    /sample/:id/camp/:c                              controllers.Application.sample(id: String, c: String)
 
 
 # GET     /sample/:id/camp/:c   controllers.Application.sample(id: Long, c: Long)
@@ -52,4 +54,4 @@ GET     /sample/:id/camp/:c   controllers.Application.sample(id: String, c: Stri
 
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET    /assets/*file                                    controllers.Assets.at(path="/public", file)

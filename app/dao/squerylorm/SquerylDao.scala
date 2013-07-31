@@ -191,6 +191,11 @@ class SquerylDao extends dao.Dao {
   def getCurrentRecommedation(c: domain.Campaign, dateTime: DateTime = new DateTime): Option[domain.Recommendation] =
     Campaign.get_by_id(c.id).selectCurrentRecommendation(dateTime)
 
+  /**
+   * creates Phrases Statistics
+   */
+  def createPhrasesStats(phrasesStats: Map[String, Int]):Boolean = Phrase.createOrUpdateStats(phrasesStats)
+
   def clearDB: Boolean = {
     import scala.util.control.Exception._
     inTransaction {

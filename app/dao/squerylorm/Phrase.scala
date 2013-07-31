@@ -45,6 +45,15 @@ case class Phrase(
   /**
    * default update - update case in db
    */
+  def createOrUpdateStat(i: Long): Int = inTransaction {
+    update(AppSchema.phrases)(a =>
+      where(a.phrase === this.phrase)
+        set (a.stats := Some(i)))
+  }
+
+  /**
+   * default update - update case in db
+   */
   def tryToUpdate(): Unit = {
     if (updateName != 0) println("!Phrase - " + this.network_phrase_id + " Name is updated!")
     if (updateID != 0) println("!Phrase - " + this.network_phrase_id + " ID is updated!")
@@ -98,6 +107,33 @@ object Phrase {
   def select2(metrika_phrase_id: String): Option[Phrase] = inTransaction {
     AppSchema.phrases.where(a =>
       a.metrika_phrase_id === metrika_phrase_id).headOption
+  }
+
+  /**
+   * select Phrases for given network_campaign_id
+   */
+  def select3(user_name: String, net_name: String, network_campaign_id: String): List[Phrase] = inTransaction {
+    from(AppSchema.users, AppSchema.networks, AppSchema.campaigns, AppSchema.bannerphrases, AppSchema.phrases)((u, n, c, b, p) =>
+      where(
+        c.network_campaign_id === network_campaign_id and
+          u.name === user_name and n.name === net_name and
+          c.user_id === u.id and c.network_id === n.id and
+          b.campaign_id === c.id and
+          b.phrase_id === p.id)
+        select (p)).toList
+  }
+
+  def createOrUpdateStats(phrasesStats: Map[String, Int]): Boolean = {
+    val bl = phrasesStats flatMap {
+      case (ph, i) =>
+        Phrase.select(ph) map { phrase =>
+          if (phrase.createOrUpdateStat(i) == 0) {
+            println("??? Stats is NOT updated for Phrase id=" + phrase.id)
+            false
+          } else true
+        }
+    }
+    bl.find(_ == true).isDefined
   }
 }
 
