@@ -40,6 +40,8 @@ GET    /user/:user/net/:net/camp/:id/charts/:password   controllers.CampaignCont
 GET    /user/:user/net/:net/camp/:id/phrases            controllers.CampaignController.phrases(user: String, net: String, id: String)
 POST   /user/:user/net/:net/phrasesstats                controllers.CampaignController.phrasesStats(user: String, net: String)
 
+GET    /user/:user/net/:net/camp/:id/runoptimization    controllers.CampaignController.runOptimization(user: String, net: String, id: String)
+
 # Misc development
 GET    /sample/:id/camp/:c                              controllers.Application.sample(id: String, c: String)
 

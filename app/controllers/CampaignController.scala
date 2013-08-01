@@ -389,12 +389,12 @@ object CampaignController extends Controller with Secured {
           //val dao = new SquerylDao
           dao.getCampaign(user_name, net_name, network_campaign_id) match {
             case None => {
-              println("!!!!Not found campaigns");
+              println("??? Not found campaigns...");
               NotFound("""Can't find Campaign for given User: %s, Network: %s,
               network_campaign_id: %s""".format(user_name, net_name, network_campaign_id))
             }
             case Some(c) => {
-              println("!!!!Found campaigns");
+              println("!!! Found campaigns");
               //check if recommendations has been modified since
               dao.recommendationChangedSince(c, date) match {
                 // not changed - 304
@@ -414,12 +414,13 @@ object CampaignController extends Controller with Secured {
                   // retrieve recommendations from DB
                   dao.getCurrentRecommedation(c) match {
                     case None => {
-                      println("true NOT found current recommendations!!!!");
-                      BadRequest("No Recommendation found")
+                      println("??? NO recommendations found...");
+                      NotFound("No Recommendation found")
                     }
                     case Some(rec) => {
-                      println("YES Changed!!!!");
-                      Ok(toJson[List[serializers.PhrasePriceInfo]](serializers.Recommendation(c, rec))) as (JSON)
+                      println("!!! Recommendations are found !!!");
+                      //Ok(toJson[List[serializers.PhrasePriceInfo]](serializers.Recommendation(c, rec))) as (JSON)
+                      Ok(Json.stringify(serializers.Recommendation(c, rec))) as (JSON)
                     }
                   }
               }
@@ -459,6 +460,25 @@ object CampaignController extends Controller with Secured {
       dao.createPhrasesStats(phStats) match {
         case true => Ok("!!! Wordstat report is POSTED")
         case false => InternalServerError("??? Failed... Wordstat report is NOT posted...")
+      }
+    })
+
+  def runOptimization(user_name: String, net_name: String, network_campaign_id: String) = IsAuth(
+    user_name,
+    (dao, user) => request => {
+      dao.getCampaign(user_name, net_name, network_campaign_id) match {
+        case None => {
+          println("??? Campaign is NOT found...");
+          NotFound("""Can't find Campaign for given User: %s, Network: %s,
+              network_campaign_id: %s""".format(user_name, net_name, network_campaign_id))
+        }
+        case Some(c) => {
+          /*
+           * RUN OPTIMIZATION
+           */
+          println("!!! The algorithm have been started, %s - %s !!!".format(c._login, c.network_campaign_id))
+          Ok("!!! The algorithm have been started !!!")
+        }
       }
     })
 
