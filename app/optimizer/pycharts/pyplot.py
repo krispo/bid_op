@@ -38,7 +38,7 @@ def scatter(data):
 
   #fig = plt.figure()
 
-  plt.plot(x,y,'ro')
+  plt.plot(x,y,'go')
 
   plt.title(data['title'])
   plt.xlabel(data['xlabel'])

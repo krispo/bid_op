@@ -151,17 +151,94 @@ class CTRclass(c: Campaign) {
   } toMap
 
   lazy val bp2imp = c.bannerPhrases.map { bp =>
-    bp -> calc_imp(bp.performanceHistory)
+    //bp -> calc_imp(bp.performanceHistory)
+    bp -> bp.phrase.map(_.stats.getOrElse(0l)).getOrElse(0l)
   } toMap
 
-  def clicos(bp: BannerPhrase, price: Double, nab: domain.NetAdvisedBids): (Double, Double) = {
+  lazy val clicosMAX = {
+    val res = c.bannerPhrases.map { bp =>
+      clicosByPos(bp, 4)
+    }
+    val cli = res.map(_._1).sum
+    val cos = res.map(_._2).sum
+    (cli, cos)
+  }
+
+  def clicosByPrice(bp: BannerPhrase, price: Double, oNAB: Option[domain.NetAdvisedBids] = None): (Double, Double) = {
+    val nab = oNAB.getOrElse(bp.netAdvisedBidsHistory.last)
+
     val pos = getPos(price, nab)
 
     val _ctr = bp2ctr(bp)(pos)
 
-    val clicks = _ctr * bp2imp(bp)
+    val clicks = _ctr * bp2imp(bp) / (30 * 96)
     val cost = clicks * price
 
     (clicks, cost)
+  }
+
+  def clicosByPos(bp: BannerPhrase, pos: Int, oNAB: Option[domain.NetAdvisedBids] = None): (Double, Double) = {
+    val nab = oNAB.getOrElse(bp.netAdvisedBidsHistory.last)
+
+    val price = pos match {
+      case 0 => nab.a / 2
+      case 1 => nab.a
+      case 2 => nab.b
+      case 3 => nab.c
+      case 4 => nab.d
+    }
+
+    val _ctr = bp2ctr(bp)(pos)
+
+    val clicks = _ctr * bp2imp(bp) / (30 * 96)
+    val cost = clicks * price
+
+    (clicks, cost)
+  }
+
+  /**
+   * Optimization
+   */
+  import scala.math._
+  def bp2tg = {
+    for {
+      (bp, ctrl) <- bp2ctr
+    } yield {
+      val nab = bp.netAdvisedBidsHistory.last
+      val d_cli01 = clicosByPos(bp, 1)._1 - clicosByPos(bp, 0)._1
+      val d_cos01 = clicosByPos(bp, 1)._2 - clicosByPos(bp, 0)._2
+
+      val d_cli12 = clicosByPos(bp, 2)._1 - clicosByPos(bp, 1)._1
+      val d_cos12 = clicosByPos(bp, 2)._2 - clicosByPos(bp, 1)._2
+
+      val d_cli23 = clicosByPos(bp, 3)._1 - clicosByPos(bp, 2)._1
+      val d_cos23 = clicosByPos(bp, 3)._2 - clicosByPos(bp, 2)._2
+
+      val d_cli34 = clicosByPos(bp, 4)._1 - clicosByPos(bp, 3)._1
+      val d_cos34 = clicosByPos(bp, 4)._2 - clicosByPos(bp, 3)._2
+
+      val p01 = d_cli01 / d_cos01 //(ctrl(1) - ctrl(0)) / (ctrl(1) * nab.a - ctrl(0) * nab.a / 2)
+      val p12 = d_cli12 / d_cos12 //(ctrl(2) - ctrl(1)) / (ctrl(2) * nab.b - ctrl(1) * nab.a)
+      val p23 = d_cli23 / d_cos23 //(ctrl(3) - ctrl(2)) / (ctrl(3) * nab.c - ctrl(2) * nab.b)
+      val p34 = d_cli34 / d_cos34 //(ctrl(4) - ctrl(3)) / (ctrl(4) * nab.d - ctrl(3) * nab.c)
+      val tgl = List(
+        (p01, (d_cli01, d_cos01)),
+        (p12, (d_cli12, d_cos12)),
+        (p23, (d_cli23, d_cos23)),
+        (p34, (d_cli34, d_cos34)))
+      bp -> tgl
+    }
+  }
+
+  def perfectEF = {
+    val tgl = bp2tg.map(_._2).toList.flatten
+    val clicos = tgl.sortWith(_._1 < _._1).map(_._2)
+    println("@#$%^" + clicosMAX)
+
+    //println(clicos)
+    val clicks = clicos.map(_._1).scan(0d)(_ + _).tail //.map(clicosMAX._1 - _)
+    val cost = clicos.map(_._2).scan(0d)(_ + _).tail //.map(clicosMAX._2 - _)
+
+    clicks.map(clicks.last - _) zip cost.map(cost.last - _)
   }
 }
