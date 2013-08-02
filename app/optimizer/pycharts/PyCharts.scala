@@ -4,7 +4,7 @@ import scala.sys.process._
 import play.api.libs.json._
 
 class PyCharts {
-  val dir = System.getProperty("user.dir") + "/app/optimizer/pycharts/"
+  val dir = "/home/krispo/Documents/eclipse/bid_op/app/optimizer/pycharts/"//System.getProperty("user.dir") + "/app/optimizer/pycharts/"
   val wrap = dir + "wrap.py"
   val fnameLine = dir + "line.json"
   val fnameScatter = dir + "scatter.json"
