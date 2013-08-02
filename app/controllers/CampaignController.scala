@@ -398,17 +398,9 @@ object CampaignController extends Controller with Secured {
               //check if recommendations has been modified since
               dao.recommendationChangedSince(c, date) match {
                 // not changed - 304
-                case false => NotModified // retrieve recommendations from DB
-                /*dao.getCurrentRecommedation(c, date) match {
-                  case None => {
-                    println("false NOT found current recommendations!!!!");
-                    BadRequest("No Recommendation found")
-                  }
-                  case Some(rec) => {
-                    println("NOT Changed!!!!");
-                    Ok(serializers.Recommendation(c, rec).getAsJson) as (JSON)
-                  }
-                }*/
+                case false =>
+                  println("!!! Recommendations are NOT changed !!!")
+                  NotModified
                 // changed
                 case true =>
                   // retrieve recommendations from DB
@@ -419,7 +411,6 @@ object CampaignController extends Controller with Secured {
                     }
                     case Some(rec) => {
                       println("!!! Recommendations are found !!!");
-                      //Ok(toJson[List[serializers.PhrasePriceInfo]](serializers.Recommendation(c, rec))) as (JSON)
                       Ok(Json.stringify(serializers.Recommendation(c, rec))) as (JSON)
                     }
                   }
