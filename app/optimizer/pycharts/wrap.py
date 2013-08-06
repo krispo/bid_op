@@ -12,6 +12,9 @@ def plot(method, data):
 		line(data)
 	elif method=="scatter":
 		scatter(data)
+	elif method=="linescatter":
+		line(data)
+		scatter(data)	
 	else: 
 		print "Such method is NOT exists..."
 
