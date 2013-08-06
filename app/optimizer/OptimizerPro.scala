@@ -143,9 +143,10 @@ class CTRclass(c: Campaign) {
     }
   }
 
-  lazy val bp2ctr = c.bannerPhrases.map { bp =>
+  lazy val bp2ctr: Map[BannerPhrase, List[Double]] = c.bannerPhrases.map { bp =>
     val ctrs = (0 to 4).toList map { pos =>
-      ctr(bp, pos)
+      //ctr(bp, pos)
+      (pos * pos * 2 + 1).toDouble / 100
     }
     bp -> ctrs
   } toMap
@@ -154,15 +155,6 @@ class CTRclass(c: Campaign) {
     //bp -> calc_imp(bp.performanceHistory)
     bp -> bp.phrase.map(_.stats.getOrElse(0l)).getOrElse(0l)
   } toMap
-
-  lazy val clicosMAX = {
-    val res = c.bannerPhrases.map { bp =>
-      clicosByPos(bp, 4)
-    }
-    val cli = res.map(_._1).sum
-    val cos = res.map(_._2).sum
-    (cli, cos)
-  }
 
   def clicosByPrice(bp: BannerPhrase, price: Double, oNAB: Option[domain.NetAdvisedBids] = None): (Double, Double) = {
     val nab = oNAB.getOrElse(bp.netAdvisedBidsHistory.last)
@@ -183,7 +175,7 @@ class CTRclass(c: Campaign) {
     val price = pos match {
       case 0 => nab.a / 2
       case 1 => nab.a
-      case 2 => nab.b
+      case 2 => scala.math.min(nab.b, nab.c)
       case 3 => nab.c
       case 4 => nab.d
     }
@@ -221,24 +213,110 @@ class CTRclass(c: Campaign) {
       val p12 = d_cli12 / d_cos12 //(ctrl(2) - ctrl(1)) / (ctrl(2) * nab.b - ctrl(1) * nab.a)
       val p23 = d_cli23 / d_cos23 //(ctrl(3) - ctrl(2)) / (ctrl(3) * nab.c - ctrl(2) * nab.b)
       val p34 = d_cli34 / d_cos34 //(ctrl(4) - ctrl(3)) / (ctrl(4) * nab.d - ctrl(3) * nab.c)
+      /*val p01 = (ctrl(1) - ctrl(0)) / (ctrl(1) * nab.a - ctrl(0) * nab.a / 2)
+      val p12 = (ctrl(2) - ctrl(1)) / (ctrl(2) * nab.b - ctrl(1) * nab.a)
+      val p23 = (ctrl(3) - ctrl(2)) / (ctrl(3) * nab.c - ctrl(2) * nab.b)
+      val p34 = (ctrl(4) - ctrl(3)) / (ctrl(4) * nab.d - ctrl(3) * nab.c)*/
+
       val tgl = List(
         (p01, (d_cli01, d_cos01)),
         (p12, (d_cli12, d_cos12)),
         (p23, (d_cli23, d_cos23)),
         (p34, (d_cli34, d_cos34)))
+      /*val tgl = List(
+        (p01, (ctrl(1) - ctrl(0), ctrl(1) * nab.a - ctrl(0) * nab.a / 2)),
+        (p12, (ctrl(2) - ctrl(1), ctrl(2) * nab.b - ctrl(1) * nab.a)),
+        (p23, (ctrl(3) - ctrl(2), ctrl(3) * nab.c - ctrl(2) * nab.b)),
+        (p34, (ctrl(4) - ctrl(3), ctrl(4) * nab.d - ctrl(3) * nab.c)))*/
+
       bp -> tgl
     }
   }
 
+  lazy val clicosMAX = {
+    val res = c.bannerPhrases.map { bp =>
+      clicosByPos(bp, 4)
+    }
+    val cli = res.map(_._1).sum
+    val cos = res.map(_._2).sum
+    (cli, cos)
+  }
+
   def perfectEF = {
     val tgl = bp2tg.map(_._2).toList.flatten
-    val clicos = tgl.sortWith(_._1 < _._1).map(_._2)
+    val _clicos = tgl.sortWith(_._1 < _._1) //.map(_._2)
+    val clicos = _clicos.map(_._2)
     println("@#$%^" + clicosMAX)
+    println(clicos.length)
+    println(bp2ctr.map(_._2))
+    println(_clicos.map(_._1))
 
     //println(clicos)
-    val clicks = clicos.map(_._1).scan(0d)(_ + _).tail //.map(clicosMAX._1 - _)
-    val cost = clicos.map(_._2).scan(0d)(_ + _).tail //.map(clicosMAX._2 - _)
+    val clicks = clicos.map(_._1).scan(0d)(_ + _) //.tail //.map(clicosMAX._1 - _)
+    val cost = clicos.map(_._2).scan(0d)(_ + _) //.tail //.map(clicosMAX._2 - _)
 
     clicks.map(clicks.last - _) zip cost.map(cost.last - _)
+    //clicks.map(clicosMAX._1 - _) zip cost.map(clicosMAX._2 - _)
+  }
+
+  //def greeddown(bp2ind:Map[BannerPhrase,Int]):Map[BannerPhrase,]
+  def deltaUP(bp2ind: Map[BannerPhrase, Int]): Map[BannerPhrase, Double] = {
+    bp2tg.map {
+      case (bp, l) => bp -> l(bp2ind.get(bp).get)
+    }
+    c.bannerPhrases.map(_ -> 1.0).toMap
+  }
+
+  def greedDOWN = {
+    def deltaDOWN(bp2ind: scala.collection.mutable.Map[BannerPhrase, Int]): List[(Double, Double)] = {
+
+      val tgl = bp2tg.map {
+        case (bp, l) =>
+          val ind = bp2ind.get(bp).get
+          bp -> (l(if (ind < 0) 0 else ind) -> ind)
+      }.toList
+      tgl.filter(tg => tg._2._2 >= 0) match {
+        case Nil => Nil
+        case l =>
+          println(l.length)
+          val m = l.minBy(_._2._1._1)
+          bp2ind(m._1) = m._2._2 - 1
+          m._2._1._2 :: deltaDOWN(bp2ind)
+      }
+    }
+    val clicos = deltaDOWN(scala.collection.mutable.Map(c.bannerPhrases.map(bp => bp -> 3).toSeq: _*))
+    val clicks = clicos.map(_._1).scan(0d)(_ + _) //.tail //.map(clicosMAX._1 - _)
+    val cost = clicos.map(_._2).scan(0d)(_ + _) //.tail //.map(clicosMAX._2 - _)
+    println("!!!", clicks.last, cost.last)
+    clicks.map(clicks.last - _) zip cost.map(cost.last - _)
+    //clicks.map(clicosMAX._1 - _) zip cost.map(clicosMAX._2 - _)
+    //clicks zip cost
+
+  }
+
+  def greedUP = {
+    def deltaUP(bp2ind: scala.collection.mutable.Map[BannerPhrase, Int]): List[(Double, Double)] = {
+
+      val tgl = bp2tg.map {
+        case (bp, l) =>
+          val ind = bp2ind.get(bp).get
+          bp -> (l(if (ind > 3) 3 else ind) -> ind)
+      }.toList
+      tgl.filter(tg => tg._2._2 <= 3) match {
+        case Nil => Nil
+        case l =>
+          println(l.length)
+          val m = l.maxBy(_._2._1._1)
+          bp2ind(m._1) = m._2._2 + 1
+          m._2._1._2 :: deltaUP(bp2ind)
+      }
+    }
+    val clicos = deltaUP(scala.collection.mutable.Map(c.bannerPhrases.map(bp => bp -> 0).toSeq: _*))
+    val clicks = clicos.map(_._1).scan(0d)(_ + _) //.tail //.map(clicosMAX._1 - _)
+    val cost = clicos.map(_._2).scan(0d)(_ + _) //.tail //.map(clicosMAX._2 - _)
+    //println("!!!", clicks.last, cost.last)
+    //clicks.map(clicks.last - _) zip cost.map(cost.last - _)
+    clicks zip cost
+
   }
 }
