@@ -7,34 +7,38 @@ Line Plot
 def line(data):   
   print "Line Plot"
 
-  x = data['x']
-  y = data['y']
+  x = data['line']['x']
+  y = data['line']['y']
 
-  #fig = plt.figure()
+  f = plt.figure()
 
   if y==None: 
-    plt.plot(x)
-  else: 
+    plt.plot(x[0])
+  elif len(x)==1: 
     for i in range(0,len(y)): 
-      plt.plot(x,y[i],'-')
+      plt.plot(x[0],y[i],'-')
+  else:
+    for i in range(0,len(y)): 
+      plt.plot(x[i],y[i],'-o')
 
   plt.title(data['title'])
   plt.xlabel(data['xlabel'])
   plt.ylabel (data['ylabel'])
+
   #plt.ion()     # turns on interactive mode
   plt.show()    # now this should be non-blocking
   #plt.show(block=True)
   #fig.show()
-  return
+  return plt
 
-'''
-Scatter Plot
-'''
+  '''
+  Scatter Plot
+  '''
 def scatter(data): 
   print "Scatter Plot"
 
-  x = data['x']
-  y = data['y']
+  x = data['scatter']['x']
+  y = data['scatter']['y']
 
   #fig = plt.figure()
 

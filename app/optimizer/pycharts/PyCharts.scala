@@ -4,17 +4,19 @@ import scala.sys.process._
 import play.api.libs.json._
 
 class PyCharts {
-  val dir = "/home/krispo/Documents/eclipse/bid_op/app/optimizer/pycharts/"//System.getProperty("user.dir") + "/app/optimizer/pycharts/"
+  val dir = "/home/krispo/Documents/eclipse/bid_op/app/optimizer/pycharts/" //System.getProperty("user.dir") + "/app/optimizer/pycharts/"
   val wrap = dir + "wrap.py"
   val fnameLine = dir + "line.json"
   val fnameScatter = dir + "scatter.json"
+  val fnameLineScatter = dir + "linescatter.json"
 
   implicit val jspp = Json.writes[PP]
 
-  def getLine(_x: List[Double], _ys: List[List[Double]], pp: PP): Unit = {
+  def getLine(_xl: List[List[Double]], _yl: List[List[Double]], pp: PP): Unit = {
 
+    val jsl = Json.obj(("x" -> _xl), ("y" -> _yl))
     val jsdata = Json.stringify {
-      Json.obj(("x" -> _x), ("y" -> _ys)) ++ Json.toJson[PP](pp).as[JsObject]
+      Json.obj(("line" -> jsl)) ++ Json.toJson[PP](pp).as[JsObject]
     }
     writeToFile(fnameLine, jsdata)
     println("<<<")
@@ -22,14 +24,28 @@ class PyCharts {
     println(">>>")
   }
 
-  def getScatter(f: Int, _x: List[Double], _y: List[Double], pp: PP) = {
+  def getScatter(f: Int, _xs: List[Double], _ys: List[Double], pp: PP) = {
 
+    val jss = Json.obj(("x" -> _xs), ("y" -> _ys))
     val jsdata = Json.stringify {
-      Json.obj(("x" -> _x), ("y" -> _y)) ++ Json.toJson[PP](pp).as[JsObject]
+      Json.obj(("scatter" -> jss)) ++ Json.toJson[PP](pp).as[JsObject]
     }
     writeToFile(fnameScatter, jsdata)
     println("<<<")
     println(Seq("python", wrap, "scatter", fnameScatter).!!)
+    println(">>>")
+  }
+
+  def getLineScatter(_xl: List[List[Double]], _yl: List[List[Double]], _xs: List[Double], _ys: List[Double], pp: PP) = {
+
+    val jsl = Json.obj(("x" -> _xl), ("y" -> _yl))
+    val jss = Json.obj(("x" -> _xs), ("y" -> _ys))
+    val jsdata = Json.stringify {
+      Json.obj(("line" -> jsl), ("scatter" -> jss)) ++ Json.toJson[PP](pp).as[JsObject]
+    }
+    writeToFile(fnameLineScatter, jsdata)
+    println("<<<")
+    println(Seq("python", wrap, "linescatter", fnameLineScatter).!!)
     println(">>>")
   }
 
