@@ -233,13 +233,24 @@ class CTRclass(c: Campaign) {
     }
   }
 
-  lazy val clicosMAX = {
+  /*
+    lazy val clicosMAX = {
     val res = c.bannerPhrases.map { bp =>
       clicosByPos(bp, 4)
     }
     val cli = res.map(_._1).sum
     val cos = res.map(_._2).sum
     (cli, cos)
+  }
+  */
+  lazy val clicosMAX = {
+    val cc = bp2tg.map {
+      case (bp, l) =>
+        val cli = l.map(_._2._1).sum
+        val cos = l.map(_._2._2).sum
+        (cli, cos)
+    }
+    (cc.map(_._1).sum, cc.map(_._2).sum) //(cli,cos)
   }
 
   def perfectEF = {
@@ -319,4 +330,72 @@ class CTRclass(c: Campaign) {
     clicks zip cost
 
   }
+
+  def greedFULL = {
+    //TODO: if found UP tg => remove current (the last) DOWN tg and then move to UP direction
+
+    def deltaFULL(bp2ind: scala.collection.mutable.Map[BannerPhrase, Int],
+      cli: Double,
+      cos: Double,
+      tgMAX: Double,
+      tgMIN: Double,
+      depth: Int): List[((Double, Double), (Double, Double))] = {
+
+      val tglDOWN = bp2tg.map {
+        case (bp, l) =>
+          val ind = bp2ind.get(bp).get
+          bp -> (l(
+            if (ind < 0) 0
+            else if (ind > 3) 3
+            else ind)
+            -> ind)
+      }.toList
+
+      val tglUP = bp2tg.map {
+        case (bp, l) =>
+          val ind = bp2ind.get(bp).get + 1
+          bp -> (l(
+            if (ind < 0) 0
+            else if (ind > 3) 3
+            else ind)
+            -> ind)
+      }.toList
+
+      val bp2indDOWN = bp2ind
+      val bp2indUP = bp2ind
+
+      {
+        tglDOWN.filter(tg => tg._2._2 >= 0) match {
+          case Nil => Nil
+          case l =>
+            //println("DOWN: " + l.length);
+            val minl = l.minBy(_._2._1._1)
+            bp2indDOWN(minl._1) = minl._2._2 - 1
+            (minl._2._1._2, (cli - minl._2._1._2._1, cos - minl._2._1._2._2)) ::
+              deltaFULL(bp2indDOWN, cli - minl._2._1._2._1, cos - minl._2._1._2._2, tgMAX, minl._2._1._1, depth)
+        }
+      } ::: {
+        tglUP.filter(tg => tg._2._2 <= 3) match {
+          case Nil => Nil
+          case l =>
+            println("UP: " + depth);
+
+            if (depth > 3) Nil
+            else {
+              val maxl = l.maxBy(_._2._1._1)
+              if (maxl._2._1._1 > tgMIN) {
+                bp2indUP(maxl._1) = maxl._2._2 + 1
+                (maxl._2._1._2, (cli + maxl._2._1._2._1, cos + maxl._2._1._2._2)) ::
+                  deltaFULL(bp2indUP, cli + maxl._2._1._2._1, cos + maxl._2._1._2._2, maxl._2._1._1, tgMIN, depth + 1)
+              } else Nil
+            }
+        }
+      }
+
+    }
+    val clicos = deltaFULL(scala.collection.mutable.Map(c.bannerPhrases.map(bp => bp -> 3).toSeq: _*), clicosMAX._1, clicosMAX._2, 0, Double.MaxValue, 1)
+
+    clicos.map(_._2)
+  }
+
 }
